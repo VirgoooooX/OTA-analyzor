@@ -19,6 +19,7 @@ services:
       DATA_DIR: /app/data
       UPLOAD_DIR: /app/uploads
       TAGS_FILE: /app/config/tags.json
+      DB_PATH: /app/config/ota.db
     volumes:
       - ./Raw Data:/app/data
       - ./uploads:/app/uploads

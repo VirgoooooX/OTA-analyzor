@@ -593,7 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 traces.push({
                     x: subset.map(d => d.CheckPoint),
                     y: subset.map(d => d.Delta),
-                    name: nChannels > 1 ? `${ch} - ${source}` : source,
+                    name: source,
                     type: 'box',
                     boxpoints: 'suspectedoutliers',
                     jitter: 0.3,

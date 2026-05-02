@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=9">
+    <link rel="stylesheet" href="styles.css?v=10">
     <!-- Plotly.js -->
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
 </head>
@@ -92,11 +92,6 @@
                 </div>
                 
                 <div class="topbar-right">
-                    <select id="dataTypeSelect" class="data-type-select">
-                        <option value="delta">Delta (Tx Power Drop)</option>
-                        <option value="raw">Raw Power (dBm)</option>
-                    </select>
-                    <div class="divider"></div>
                     <div class="channel-toggles">
                         <label class="toggle-btn">
                             <input type="checkbox" class="channel-filter" value="Tx_LC" checked>
@@ -135,6 +130,10 @@
                     <div id="analysisSummary" class="analysis-summary"></div>
                     <div id="reportPanel" class="report-panel hidden"></div>
                     <div id="cpFilter" class="cp-filter hidden">
+                        <select id="dataTypeSelect" class="data-type-select">
+                            <option value="delta">Delta (Tx Power Drop)</option>
+                            <option value="raw">Raw Power (dBm)</option>
+                        </select>
                         <span class="cp-filter-label">CheckPoint:</span>
                         <div class="multi-select" id="cpMultiSelect">
                             <button class="multi-select-trigger" id="cpSelectTrigger" type="button">
@@ -179,6 +178,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=9"></script>
+    <script src="script.js?v=10"></script>
 </body>
 </html>

@@ -456,6 +456,18 @@ document.addEventListener('DOMContentLoaded', () => {
         renderChart();
     });
 
+    // ── ResizeObserver: auto-resize Plotly whenever the chart container changes size ──
+    let chartResizeObserver = null;
+    function ensureChartResizeObserver() {
+        if (chartResizeObserver) return;
+        chartResizeObserver = new ResizeObserver(() => {
+            if (store.currentData && plotlyChart && plotlyChart._fullLayout) {
+                Plotly.Plots.resize(plotlyChart);
+            }
+        });
+        chartResizeObserver.observe(plotlyChart);
+    }
+
     function renderChart() {
         if (!store.currentData) return;
 
@@ -487,10 +499,8 @@ document.addEventListener('DOMContentLoaded', () => {
             renderTrendPlot(filteredData, activeCPs, selectedChannels);
         }
 
-        // Force Plotly to fill the container — autosize alone won't do it on initial render
-        requestAnimationFrame(() => {
-            Plotly.Plots.resize(plotlyChart);
-        });
+        // Start observing the chart container for size changes (CP chips toggle, flex relayout, etc.)
+        ensureChartResizeObserver();
     }
 
     // Theme Toggle Logic

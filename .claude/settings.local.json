@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"l:/Web/OTA analyzor\" log --oneline -20)",
+      "Bash(git -C \"l:/Web/OTA analyzor\" diff HEAD --stat)",
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(pip install:*)",
+      "Bash(python -c \"from app.config import DB_PATH, DATA_DIR, UPLOAD_DIR; print\\('config OK'\\); from app.database import init_db, get_all_tags; print\\('database OK'\\); from app.models import GenerateRequest; print\\('models OK'\\); from app.utils import safe_filename, get_cp_order; print\\('utils OK'\\); from app.services.data_service import process_file, get_cleaned_data; print\\('data_service OK'\\); from app.services.chart_service import generate_chart_image; print\\('chart_service OK'\\); from app.services.file_service import list_files; print\\('file_service OK'\\); from app.services.tag_service import list_all_tags; print\\('tag_service OK'\\); from app import create_app; print\\('app OK'\\); print\\('All imports passed!'\\)\")",
+      "Bash(python -c ':*)",
+      "Bash(wc -l main.py app/*.py app/**/*.py)"
+    ]
+  }
+}

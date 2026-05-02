@@ -7,6 +7,7 @@ ENV PORT=8000
 ENV DATA_DIR=/app/data
 ENV UPLOAD_DIR=/app/uploads
 ENV TAGS_FILE=/app/config/tags.json
+ENV DB_PATH=/app/config/ota.db
 
 WORKDIR /app
 
@@ -18,6 +19,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY analysis.py main.py ./
+COPY app/ ./app/
 COPY static ./static
 
 RUN mkdir -p /app/data /app/uploads /app/config \

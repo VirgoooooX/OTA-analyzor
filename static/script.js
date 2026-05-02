@@ -29,14 +29,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const newTagInput = document.getElementById('newTagInput');
     const modalTagList = document.getElementById('modalTagList');
 
-    let allFiles = [];
-    let currentData = null; // Store fetched JSON data
-    let currentChartType = 'boxplot';
-    let globalAllTags = [];
-    let activeTagFilters = [];
-    
-    let editingFileName = null;
-    let editingTags = [];
+    const store = {
+        allFiles: [],
+        currentData: null,
+        chartType: 'boxplot',
+        allTags: [],
+        activeTagFilters: [],
+        selectedCPs: [],
+        isolatedTrendSN: null,
+        editingFileName: null,
+        editingTags: [],
+    };
 
     // Load files list
     function loadFiles() {
@@ -46,10 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('/api/files?t=' + new Date().getTime(), { cache: 'no-store' })
             .then(res => res.json())
             .then(data => {
-                allFiles = data.files || [];
-                globalAllTags = data.all_tags || [];
-                renderTagFilters(globalAllTags);
-                renderFiles(allFiles);
+                store.allFiles = data.files || [];
+                store.allTags = data.all_tags || [];
+                renderTagFilters(store.allTags);
+                renderFiles(store.allFiles);
                 applyFilters();
             })
             .catch(err => {
@@ -67,14 +70,14 @@ document.addEventListener('DOMContentLoaded', () => {
         tags.forEach(tag => {
             const chip = document.createElement('div');
             chip.className = 'tag-chip';
-            if (activeTagFilters.includes(tag)) chip.classList.add('active');
+            if (store.activeTagFilters.includes(tag)) chip.classList.add('active');
             chip.textContent = tag;
             chip.onclick = () => {
-                if (activeTagFilters.includes(tag)) {
-                    activeTagFilters = activeTagFilters.filter(t => t !== tag);
+                if (store.activeTagFilters.includes(tag)) {
+                    store.activeTagFilters = store.activeTagFilters.filter(t => t !== tag);
                     chip.classList.remove('active');
                 } else {
-                    activeTagFilters.push(tag);
+                    store.activeTagFilters.push(tag);
                     chip.classList.add('active');
                 }
                 applyFilters();
@@ -163,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const textMatch = keywords.length === 0 || keywords.every(kw => fileName.includes(kw) || fileTags.some(t => t.toLowerCase().includes(kw)));
             
             // Tag match (AND logic: must contain ALL active tags)
-            const tagMatch = activeTagFilters.length === 0 || activeTagFilters.every(t => fileTags.includes(t));
+            const tagMatch = store.activeTagFilters.length === 0 || store.activeTagFilters.every(t => fileTags.includes(t));
             
             item.style.display = (textMatch && tagMatch) ? 'flex' : 'none';
         });
@@ -226,8 +229,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Modal Logic
     function openTagModal(fileName, tags) {
-        editingFileName = fileName;
-        editingTags = [...tags];
+        store.editingFileName = fileName;
+        store.editingTags = [...tags];
         modalFileName.textContent = fileName;
         newTagInput.value = '';
         renderModalTags();
@@ -237,13 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeTagModal() {
         tagModal.classList.add('hidden');
-        editingFileName = null;
-        editingTags = [];
+        store.editingFileName = null;
+        store.editingTags = [];
     }
 
     function renderModalTags() {
         modalTagList.innerHTML = '';
-        editingTags.forEach(tag => {
+        store.editingTags.forEach(tag => {
             const tagEl = document.createElement('div');
             tagEl.className = 'removable-tag';
             tagEl.innerHTML = `
@@ -251,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="remove-tag-btn" data-tag="${tag}">&times;</button>
             `;
             tagEl.querySelector('.remove-tag-btn').onclick = () => {
-                editingTags = editingTags.filter(t => t !== tag);
+                store.editingTags = store.editingTags.filter(t => t !== tag);
                 renderModalTags();
             };
             modalTagList.appendChild(tagEl);
@@ -262,8 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') {
             e.preventDefault();
             const newTag = newTagInput.value.trim();
-            if (newTag && !editingTags.includes(newTag)) {
-                editingTags.push(newTag);
+            if (newTag && !store.editingTags.includes(newTag)) {
+                store.editingTags.push(newTag);
                 renderModalTags();
                 newTagInput.value = '';
             }
@@ -274,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelTagBtn.addEventListener('click', closeTagModal);
 
     saveTagBtn.addEventListener('click', async () => {
-        if (!editingFileName) return;
+        if (!store.editingFileName) return;
         const originalText = saveTagBtn.textContent;
         saveTagBtn.disabled = true;
         saveTagBtn.textContent = '保存中...';
@@ -283,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/api/tags', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filename: editingFileName, tags: editingTags })
+                body: JSON.stringify({ filename: store.editingFileName, tags: store.editingTags })
             });
             if (!res.ok) throw new Error('Failed to save tags');
             closeTagModal();
@@ -343,8 +346,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errData.detail || '获取数据失败');
             }
 
-            currentData = await response.json();
-            renderSummary(currentData);
+            store.currentData = await response.json();
+            store.selectedCPs = [];
+            renderSummary(store.currentData);
+            renderCPChips();
             renderChart();
 
             loading.classList.add('hidden');
@@ -410,30 +415,76 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.addEventListener('click', (e) => {
             chartTabs.forEach(t => t.classList.remove('active'));
             e.currentTarget.classList.add('active');
-            currentChartType = e.currentTarget.dataset.type;
-            if (currentData) renderChart();
+            store.chartType = e.currentTarget.dataset.type;
+            if (store.currentData) renderChart();
         });
     });
 
-    function renderChart() {
-        if (!currentData) return;
+    function renderCPChips() {
+        const cpFilter = document.getElementById('cpFilter');
+        const cpChipRow = document.getElementById('cpChipRow');
 
-        const chartType = currentChartType;
+        if (!store.currentData || !store.currentData.unique_cps || store.currentData.unique_cps.length === 0) {
+            cpFilter.classList.add('hidden');
+            return;
+        }
+
+        cpFilter.classList.remove('hidden');
+        cpChipRow.innerHTML = '';
+
+        store.currentData.unique_cps.forEach(cp => {
+            const chip = document.createElement('span');
+            chip.className = 'cp-chip';
+            if (store.selectedCPs.includes(cp)) chip.classList.add('active');
+            chip.textContent = cp;
+            chip.addEventListener('click', () => {
+                if (store.selectedCPs.includes(cp)) {
+                    store.selectedCPs = store.selectedCPs.filter(c => c !== cp);
+                } else {
+                    store.selectedCPs = [...store.selectedCPs, cp];
+                }
+                renderCPChips();
+                renderChart();
+            });
+            cpChipRow.appendChild(chip);
+        });
+    }
+
+    document.getElementById('cpClearBtn').addEventListener('click', () => {
+        store.selectedCPs = [];
+        renderCPChips();
+        renderChart();
+    });
+
+    function renderChart() {
+        if (!store.currentData) return;
+
+        const chartType = store.chartType;
         const selectedChannels = Array.from(channelCheckboxes)
             .filter(cb => cb.checked)
             .map(cb => cb.value);
 
-        const filteredData = currentData.data.filter(d => selectedChannels.includes(d.Channel));
+        let filteredData = store.currentData.data.filter(d => selectedChannels.includes(d.Channel));
+
+        // Apply CP filter — empty = show all
+        if (store.selectedCPs.length > 0) {
+            filteredData = filteredData.filter(d => store.selectedCPs.includes(d.CheckPoint));
+        }
 
         // Remove previous click listeners to prevent duplicates
         if (plotlyChart.removeAllListeners) {
             plotlyChart.removeAllListeners('plotly_click');
         }
 
+        // Filter categories to only those in the filtered data
+        const activeCPs = store.selectedCPs.length > 0
+            ? store.selectedCPs.filter(cp => filteredData.some(d => d.CheckPoint === cp))
+            : store.currentData.unique_cps;
+
         if (chartType === 'boxplot') {
-            renderBoxplot(filteredData, currentData.unique_cps, selectedChannels);
+            renderBoxplot(filteredData, activeCPs, selectedChannels);
         } else if (chartType === 'trend') {
-            renderTrendPlot(filteredData, currentData.unique_cps, selectedChannels);
+            renderTrendPlot(filteredData, activeCPs, selectedChannels);
         }
 
         // Force Plotly to fill the container — autosize alone won't do it on initial render
@@ -456,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isDark = document.body.classList.contains('dark-mode');
         themeIcon.textContent = isDark ? '☀️' : '🌙';
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        if (currentData) renderChart();
+        if (store.currentData) renderChart();
     });
 
     const defaultColors = [
@@ -470,7 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const nChannels = channels.length;
         
         channels.forEach((ch, chIdx) => {
-            currentData.sources.forEach((source, sIdx) => {
+            store.currentData.sources.forEach((source, sIdx) => {
                 const subset = data.filter(d => d.Channel === ch && d.Source === source);
                 if (subset.length === 0) return;
                 
@@ -524,8 +575,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    let isolatedTrendSN = null;
-
     function renderTrendPlot(data, categories, channels) {
         const isDark = document.body.classList.contains('dark-mode');
         const traces = [];
@@ -541,10 +590,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Find source index for consistent coloring
                 const source = subset[0]?.Source;
-                const sIdx = currentData.sources.indexOf(source);
+                const sIdx = store.currentData.sources.indexOf(source);
                 
-                const isIsolated = isolatedTrendSN === sn;
-                const isDimmed = isolatedTrendSN !== null && !isIsolated;
+                const isIsolated = store.isolatedTrendSN === sn;
+                const isDimmed = store.isolatedTrendSN !== null && !isIsolated;
 
                 traces.push({
                     x: subset.map(d => d.CheckPoint),
@@ -599,16 +648,16 @@ document.addEventListener('DOMContentLoaded', () => {
         Plotly.newPlot(plotlyChart, traces, layout, { responsive: true, useResizeHandler: true }).then(() => {
             Plotly.Plots.resize(plotlyChart);
             plotlyChart.on('plotly_click', function(clickData) {
-                if (currentChartType !== 'trend') return;
+                if (store.chartType !== 'trend') return;
                 
                 const clickedSN = clickData.points[0].data.name;
                 // Toggle isolation
-                isolatedTrendSN = (isolatedTrendSN === clickedSN) ? null : clickedSN;
+                store.isolatedTrendSN = (store.isolatedTrendSN === clickedSN) ? null : clickedSN;
                 
                 const update = {
-                    opacity: plotlyChart.data.map(t => isolatedTrendSN ? (t.name === isolatedTrendSN ? 1.0 : 0.05) : 0.5),
-                    'line.width': plotlyChart.data.map(t => isolatedTrendSN ? (t.name === isolatedTrendSN ? 3 : 1.5) : 1.5),
-                    'marker.size': plotlyChart.data.map(t => isolatedTrendSN ? (t.name === isolatedTrendSN ? 6 : 4) : 4)
+                    opacity: plotlyChart.data.map(t => store.isolatedTrendSN ? (t.name === store.isolatedTrendSN ? 1.0 : 0.05) : 0.5),
+                    'line.width': plotlyChart.data.map(t => store.isolatedTrendSN ? (t.name === store.isolatedTrendSN ? 3 : 1.5) : 1.5),
+                    'marker.size': plotlyChart.data.map(t => store.isolatedTrendSN ? (t.name === store.isolatedTrendSN ? 6 : 4) : 4)
                 };
                 
                 Plotly.restyle(plotlyChart, update);
@@ -618,7 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle Window Resize to make sure Plotly resizes
     window.addEventListener('resize', () => {
-        if (currentData) {
+        if (store.currentData) {
             Plotly.Plots.resize(plotlyChart);
         }
     });

@@ -797,6 +797,73 @@ body.dark-mode .report-panel {
     background: rgba(124, 45, 18, 0.2);
 }
 
+/* CP Filter Chips */
+.cp-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--bg-sidebar) 96%, var(--accent-light));
+    flex-wrap: wrap;
+}
+
+.cp-filter.hidden { display: none !important; }
+
+.cp-filter-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.cp-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    flex: 1;
+}
+
+.cp-chip {
+    padding: 0.15rem 0.5rem;
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+}
+
+.cp-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent-text);
+}
+
+.cp-chip.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.cp-clear-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 0.72rem;
+    cursor: pointer;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.cp-clear-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
 .report-row {
     display: grid;
     grid-template-columns: minmax(160px, 1fr) 1.3fr;

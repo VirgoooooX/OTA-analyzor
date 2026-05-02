@@ -81,9 +81,11 @@ def raw_data_filename(filename: str) -> str:
 
 
 def load_tags():
-    if os.path.exists(TAGS_FILE):
+    """Read tags from TAGS_FILE. Returns empty dict if file is missing, a directory, or malformed."""
+    tags_path = Path(TAGS_FILE)
+    if tags_path.is_file():
         try:
-            with open(TAGS_FILE, "r", encoding="utf-8") as f:
+            with tags_path.open("r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             print(f"Error loading tags: {e}")
@@ -91,8 +93,13 @@ def load_tags():
 
 
 def save_tags(tags_data):
+    """Persist tags to TAGS_FILE. Silently skips if the path is a directory
+    (e.g. Docker bind-mount created a dir for a missing source file)."""
     try:
         tags_path = Path(TAGS_FILE)
+        if tags_path.is_dir():
+            print(f"Warning: {TAGS_FILE} is a directory, cannot save tags")
+            return
         tags_path.parent.mkdir(parents=True, exist_ok=True)
         with tags_path.open("w", encoding="utf-8") as f:
             json.dump(tags_data, f, ensure_ascii=False, indent=2)

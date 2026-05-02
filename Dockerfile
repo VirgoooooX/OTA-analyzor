@@ -17,12 +17,15 @@ RUN apt-get update \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY analysis.py main.py tags.json ./
+COPY analysis.py main.py ./
 COPY static ./static
+
+# Create default empty tags.json if not provided via build context
+RUN echo '{}' > /app/tags.json
 
 RUN mkdir -p /app/data /app/uploads
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn main:app --host ${HOST} --port ${PORT}"]
+CMD ["sh", "-c", "if [ -d /app/tags.json ]; then rm -rf /app/tags.json && echo '{}' > /app/tags.json; fi && uvicorn main:app --host ${HOST} --port ${PORT}"]
 

@@ -4,9 +4,9 @@ __pycache__/
 .venv/
 venv/
 .git/
+.docker-test/
 Raw Data/
 uploads/
 tests/_tmp/
 *.png
 *.log
-

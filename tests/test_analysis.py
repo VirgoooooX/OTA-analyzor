@@ -51,6 +51,21 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(resolved.source_type, "upload")
         self.assertEqual(resolved.display_name, "upload.csv")
 
+    def test_resolve_data_file_supports_raw_file_ids(self):
+        TEMP_ROOT.mkdir(exist_ok=True)
+        data_dir = TEMP_ROOT / "data"
+        upload_dir = TEMP_ROOT / "uploads"
+        data_dir.mkdir(exist_ok=True)
+        upload_dir.mkdir(exist_ok=True)
+        raw_file = data_dir / "Organized_raw.csv"
+        raw_file.write_text("SerialNumber,Checkpoint\n", encoding="utf-8")
+
+        resolved = analysis.resolve_data_file("raw:Organized_raw.csv", data_dir, upload_dir)
+
+        self.assertEqual(resolved.path, raw_file)
+        self.assertEqual(resolved.source_type, "raw")
+        self.assertEqual(resolved.file_id, "raw:Organized_raw.csv")
+
 
 if __name__ == "__main__":
     unittest.main()

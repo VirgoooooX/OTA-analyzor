@@ -119,18 +119,36 @@ body {
 }
 
 /* Search and Tag Filters */
+.upload-grid {
+    display: grid;
+    gap: 0.65rem;
+    margin-bottom: 0.85rem;
+}
+
 .upload-zone {
     display: grid;
     grid-template-columns: 44px 1fr;
     gap: 0.75rem;
     align-items: center;
     padding: 0.85rem;
-    margin-bottom: 0.85rem;
     border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--border));
     border-radius: var(--radius-md);
     background: linear-gradient(135deg, var(--accent-light), var(--bg-sidebar));
     cursor: pointer;
     transition: border-color 0.2s, transform 0.2s, background 0.2s;
+}
+
+.upload-zone.raw {
+    border-style: solid;
+    background: linear-gradient(135deg, #f0fdf4, var(--bg-sidebar));
+}
+
+body.dark-mode .upload-zone.raw {
+    background: linear-gradient(135deg, rgba(20, 83, 45, 0.35), var(--bg-sidebar));
+}
+
+.upload-zone.raw .upload-mark {
+    background: #166534;
 }
 
 .upload-zone:hover,
@@ -309,7 +327,7 @@ body {
     border: 1px solid transparent;
 }
 
-.source-badge.server {
+.source-badge.raw {
     color: #155e75;
     background: #ecfeff;
     border-color: #a5f3fc;

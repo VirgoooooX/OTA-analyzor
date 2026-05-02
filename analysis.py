@@ -127,11 +127,16 @@ def resolve_data_file(file_id: str, data_dir: str | Path, upload_dir: str | Path
         path = upload_path / name
         source_type = "upload"
         resolved_id = f"upload:{name}"
+    elif file_id.startswith("raw:"):
+        name = Path(file_id.removeprefix("raw:")).name
+        path = data_path / name
+        source_type = "raw"
+        resolved_id = f"raw:{name}"
     else:
         name = Path(file_id).name
         path = data_path / name
-        source_type = "server"
-        resolved_id = name
+        source_type = "raw"
+        resolved_id = f"raw:{name}"
 
     return DataFileRef(
         path=path,

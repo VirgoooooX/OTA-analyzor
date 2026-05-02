@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=6">
     <!-- Plotly.js -->
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
 </head>
@@ -26,13 +26,23 @@
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     </button>
                 </div>
-                <div class="upload-zone" id="uploadZone">
-                    <input type="file" id="uploadInput" accept=".csv" multiple hidden>
+                <div class="upload-grid">
+                <div class="upload-zone" id="tempUploadZone">
+                    <input type="file" id="tempUploadInput" accept=".csv" multiple hidden>
                     <div class="upload-mark">CSV</div>
                     <div>
                         <strong>上传临时数据</strong>
-                        <span>拖入或点击选择 CSV 文件</span>
+                        <span>仅用于临时对比，不进入 Raw Data</span>
                     </div>
+                </div>
+                <div class="upload-zone raw" id="rawUploadZone">
+                    <input type="file" id="rawUploadInput" accept=".csv" multiple hidden>
+                    <div class="upload-mark">RAW</div>
+                    <div>
+                        <strong>上传正式 Raw Data</strong>
+                        <span>保存到公共数据库，可长期使用</span>
+                    </div>
+                </div>
                 </div>
 
                 <div class="search-box">
@@ -148,6 +158,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=4"></script>
+    <script src="script.js?v=6"></script>
 </body>
 </html>

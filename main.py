@@ -73,6 +73,13 @@ def safe_filename(filename: str) -> str:
     return name or "upload.csv"
 
 
+def raw_data_filename(filename: str) -> str:
+    name = safe_filename(filename)
+    if not name.startswith("Organized_"):
+        name = f"Organized_{name}"
+    return name
+
+
 def load_tags():
     if os.path.exists(TAGS_FILE):
         try:
@@ -119,10 +126,11 @@ def source_label(filename: str) -> str:
 
 
 def file_entry(file_ref: DataFileRef, tags=None):
+    source_name = "upload" if file_ref.source_type == "upload" else "raw"
     return {
         "id": file_ref.file_id,
         "name": file_ref.display_name,
-        "source": file_ref.source_type,
+        "source": source_name,
         "tags": tags or [],
     }
 
@@ -139,7 +147,7 @@ def list_files():
         name = os.path.basename(path)
         f_tags = tags_data.get(name, [])
         all_tags_set.update(f_tags)
-        ref = resolve_data_file(name, DATA_DIR, UPLOAD_DIR)
+        ref = resolve_data_file(f"raw:{name}", DATA_DIR, UPLOAD_DIR)
         files_with_tags.append(file_entry(ref, f_tags))
 
     upload_pattern = os.path.join(UPLOAD_DIR, "*.csv")
@@ -173,12 +181,42 @@ async def upload_files(files: List[UploadFile] = File(...)):
     return {"uploaded": uploaded}
 
 
+@app.post("/api/rawdata/upload")
+async def upload_raw_data_files(files: List[UploadFile] = File(...)):
+    ensure_runtime_dirs()
+    uploaded = []
+    tags_data = load_tags()
+
+    for upload in files:
+        original_name = raw_data_filename(upload.filename or "rawdata.csv")
+        if not original_name.lower().endswith(".csv"):
+            raise HTTPException(status_code=400, detail=f"{original_name} 不是 CSV 文件")
+
+        target_path = Path(DATA_DIR) / original_name
+        if target_path.exists():
+            stem = target_path.stem
+            suffix = target_path.suffix
+            original_name = f"{stem}_{uuid.uuid4().hex[:8]}{suffix}"
+            target_path = Path(DATA_DIR) / original_name
+
+        with target_path.open("wb") as handle:
+            shutil.copyfileobj(upload.file, handle)
+
+        tags_data.setdefault(original_name, ["RawData"])
+        ref = resolve_data_file(f"raw:{original_name}", DATA_DIR, UPLOAD_DIR)
+        uploaded.append(file_entry(ref, tags_data[original_name]))
+
+    save_tags(tags_data)
+    return {"uploaded": uploaded}
+
+
 @app.post("/api/tags")
 def update_file_tags(request: UpdateTagsRequest):
     if request.filename.startswith("upload:"):
         raise HTTPException(status_code=400, detail="上传文件暂不保存标签")
+    filename = request.filename.removeprefix("raw:")
     tags_data = load_tags()
-    tags_data[request.filename] = request.tags
+    tags_data[filename] = request.tags
     save_tags(tags_data)
     return {"status": "success"}
 

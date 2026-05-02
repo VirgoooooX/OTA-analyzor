@@ -6,8 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const deselectAllBtn = document.getElementById('deselectAllBtn');
     const refreshBtn = document.getElementById('refreshBtn');
     const generateBtn = document.getElementById('generateBtn');
-    const uploadZone = document.getElementById('uploadZone');
-    const uploadInput = document.getElementById('uploadInput');
+    const tempUploadZone = document.getElementById('tempUploadZone');
+    const tempUploadInput = document.getElementById('tempUploadInput');
+    const rawUploadZone = document.getElementById('rawUploadZone');
+    const rawUploadInput = document.getElementById('rawUploadInput');
     
     const chartTabs = document.querySelectorAll('.tab');
     const channelCheckboxes = document.querySelectorAll('.channel-filter');
@@ -91,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         files.forEach((fileObj, index) => {
             const fileName = fileObj.name;
             const fileId = fileObj.id || fileName;
-            const source = fileObj.source || 'server';
+            const source = fileObj.source || 'raw';
             const fileTags = fileObj.tags || [];
             
             const item = document.createElement('div');
@@ -115,8 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const tagsDiv = document.createElement('div');
             tagsDiv.className = 'file-tags';
             const sourceBadge = document.createElement('span');
-            sourceBadge.className = `source-badge ${source === 'upload' ? 'upload' : 'server'}`;
-            sourceBadge.textContent = source === 'upload' ? '上传' : '服务器';
+            sourceBadge.className = `source-badge ${source === 'upload' ? 'upload' : 'raw'}`;
+            sourceBadge.textContent = source === 'upload' ? '临时' : 'Raw Data';
             tagsDiv.appendChild(sourceBadge);
             fileTags.forEach(tag => {
                 const tagSpan = document.createElement('span');
@@ -132,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
             editBtn.className = 'edit-tags-btn';
             editBtn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>';
             editBtn.disabled = source === 'upload';
-            editBtn.title = source === 'upload' ? '上传文件暂不保存标签' : '编辑标签';
+            editBtn.title = source === 'upload' ? '临时文件不保存标签' : '编辑标签';
             editBtn.onclick = (e) => {
                 e.preventDefault();
                 if (source === 'upload') return;
@@ -169,11 +171,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     searchInput.addEventListener('input', applyFilters);
 
-    function setUploadBusy(isBusy) {
-        uploadZone.classList.toggle('busy', isBusy);
+    function setUploadBusy(zone, isBusy) {
+        zone.classList.toggle('busy', isBusy);
     }
 
-    async function uploadFiles(files) {
+    async function uploadFiles(files, endpoint, zone, input, successMessage) {
         const csvFiles = Array.from(files || []).filter(file => file.name.toLowerCase().endsWith('.csv'));
         if (csvFiles.length === 0) {
             alert('请选择 CSV 文件');
@@ -182,10 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const formData = new FormData();
         csvFiles.forEach(file => formData.append('files', file));
-        setUploadBusy(true);
+        setUploadBusy(zone, true);
 
         try {
-            const response = await fetch('/api/upload', {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 body: formData
             });
@@ -194,27 +196,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errData.detail || '上传失败');
             }
             await loadFiles();
+            if (successMessage) console.log(successMessage);
         } catch (error) {
             console.error(error);
             alert('上传失败: ' + error.message);
         } finally {
-            setUploadBusy(false);
-            uploadInput.value = '';
+            setUploadBusy(zone, false);
+            input.value = '';
         }
     }
 
-    uploadZone.addEventListener('click', () => uploadInput.click());
-    uploadInput.addEventListener('change', (e) => uploadFiles(e.target.files));
-    uploadZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadZone.classList.add('dragover');
-    });
-    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
-    uploadZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadZone.classList.remove('dragover');
-        uploadFiles(e.dataTransfer.files);
-    });
+    function bindUpload(zone, input, endpoint, successMessage) {
+        zone.addEventListener('click', () => input.click());
+        input.addEventListener('change', (e) => uploadFiles(e.target.files, endpoint, zone, input, successMessage));
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            zone.classList.add('dragover');
+        });
+        zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            uploadFiles(e.dataTransfer.files, endpoint, zone, input, successMessage);
+        });
+    }
+
+    bindUpload(tempUploadZone, tempUploadInput, '/api/upload', '临时数据上传完成');
+    bindUpload(rawUploadZone, rawUploadInput, '/api/rawdata/upload', 'Raw Data 上传完成');
 
     // Modal Logic
     function openTagModal(fileName, tags) {

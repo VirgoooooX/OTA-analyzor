@@ -1,6 +1,6 @@
 services:
   ota-analyzer:
-    build: .
+    image: ghcr.io/virgooooox/ota-analyzor:latest
     container_name: ota-analyzer
     ports:
       - "8000:8000"

@@ -45,7 +45,7 @@ else:
 
 DATA_DIR = os.getenv("DATA_DIR", os.path.join(BASE_DIR, "Raw Data"))
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", os.path.join(BASE_DIR, "uploads"))
-TAGS_FILE = os.getenv("TAGS_FILE", os.path.join(BASE_DIR, "tags.json"))
+TAGS_FILE = os.getenv("TAGS_FILE", os.path.join(BASE_DIR, "config", "tags.json"))
 STATIC_DIR = get_resource_path("static")
 
 app = FastAPI(title="OTA Data Comparison")

@@ -7,9 +7,9 @@ services:
     environment:
       DATA_DIR: /app/data
       UPLOAD_DIR: /app/uploads
-      TAGS_FILE: /app/tags.json
+      TAGS_FILE: /app/config/tags.json
     volumes:
       - ./Raw Data:/app/data
       - ./uploads:/app/uploads
-      - ./tags.json:/app/tags.json
+      - ./config:/app/config
     restart: unless-stopped

@@ -1,3 +1,14 @@
+# Production deployment with pre-built multi-arch image from GHCR.
+#
+# Version strategy:
+#   :latest  → always the newest release (default for auto-update)
+#   :1       → latest v1.x.x (compatible feature updates)
+#   :1.2     → latest v1.2.x (compatible fixes only)
+#   :1.2.3   → exact version pin (recommended for critical deployments)
+#
+# Pin a specific version in production:
+#   image: ghcr.io/virgooooox/ota-analyzor:1.2.3
+
 services:
   ota-analyzer:
     image: ghcr.io/virgooooox/ota-analyzor:latest
@@ -7,9 +18,9 @@ services:
     environment:
       DATA_DIR: /app/data
       UPLOAD_DIR: /app/uploads
-      TAGS_FILE: /app/tags.json
+      TAGS_FILE: /app/config/tags.json
     volumes:
       - ./Raw Data:/app/data
       - ./uploads:/app/uploads
-      - ./tags.json:/app/tags.json
+      - ./config:/app/config
     restart: unless-stopped

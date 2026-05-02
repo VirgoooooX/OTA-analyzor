@@ -1,6 +1,6 @@
 /docs
 /Raw Data
-/tags.json
+/config/tags.json
 /__pycache__
 /tests/__pycache__
 /tests/_tmp

@@ -6,7 +6,7 @@ ENV HOST=0.0.0.0
 ENV PORT=8000
 ENV DATA_DIR=/app/data
 ENV UPLOAD_DIR=/app/uploads
-ENV TAGS_FILE=/app/tags.json
+ENV TAGS_FILE=/app/config/tags.json
 
 WORKDIR /app
 
@@ -20,12 +20,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY analysis.py main.py ./
 COPY static ./static
 
-# Create default empty tags.json if not provided via build context
-RUN echo '{}' > /app/tags.json
-
-RUN mkdir -p /app/data /app/uploads
+RUN mkdir -p /app/data /app/uploads /app/config \
+    && echo '{}' > /app/config/tags.json
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "if [ -d /app/tags.json ]; then rm -rf /app/tags.json && echo '{}' > /app/tags.json; fi && uvicorn main:app --host ${HOST} --port ${PORT}"]
-
+CMD ["sh", "-c", "uvicorn main:app --host ${HOST} --port ${PORT}"]

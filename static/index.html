@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTA Analytics Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=3">
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">📡 OTA Analytics</div>
+            </div>
+            
+            <div class="sidebar-section flex-1">
+                <div class="section-title">
+                    <span>数据源 (Data Source)</span>
+                    <button id="refreshBtn" class="icon-btn" title="刷新列表">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    </button>
+                </div>
+                <div class="upload-zone" id="uploadZone">
+                    <input type="file" id="uploadInput" accept=".csv" multiple hidden>
+                    <div class="upload-mark">CSV</div>
+                    <div>
+                        <strong>上传临时数据</strong>
+                        <span>拖入或点击选择 CSV 文件</span>
+                    </div>
+                </div>
+
+                <div class="search-box">
+                    <svg class="search-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="searchInput" placeholder="搜索文件名或标签...">
+                </div>
+                <div id="tagFilters" class="tag-filters">
+                    <!-- Tag filter chips will be generated here -->
+                </div>
+                <div class="list-actions">
+                    <button id="selectAllBtn" class="btn btn-text">全选</button>
+                    <button id="deselectAllBtn" class="btn btn-text">清空</button>
+                </div>
+                <div id="fileList" class="file-list">
+                    <!-- Checkboxes -->
+                </div>
+            </div>
+
+                <div class="sidebar-section">
+                <div class="section-title">数据过滤 (Filters)</div>
+                <label class="toggle-control">
+                    <input type="checkbox" id="includeFailData">
+                    <span class="toggle-bg"></span>
+                    <span class="toggle-label">包含 Fail 记录</span>
+                </label>
+                <div class="filter-hint">默认自动优先使用 PASS 记录；找不到 PASS 时保留最后一次记录。</div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button id="generateBtn" class="btn btn-primary" disabled>分析数据 (0/10)</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Topbar -->
+            <header class="topbar">
+                <div class="tabs" id="chartTabs">
+                    <button class="tab active" data-type="boxplot">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                        箱线图 (分布)
+                    </button>
+                    <button class="tab" data-type="trend">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                        趋势图 (个体)
+                    </button>
+                </div>
+                
+                <div class="topbar-right">
+                    <div class="channel-toggles">
+                        <label class="toggle-btn">
+                            <input type="checkbox" class="channel-filter" value="Tx_LC" checked>
+                            <span>LC</span>
+                        </label>
+                        <label class="toggle-btn">
+                            <input type="checkbox" class="channel-filter" value="Tx_MC" checked>
+                            <span>MC</span>
+                        </label>
+                        <label class="toggle-btn">
+                            <input type="checkbox" class="channel-filter" value="Tx_HC" checked>
+                            <span>HC</span>
+                        </label>
+                    </div>
+                    <div class="divider"></div>
+                    <button id="themeToggle" class="icon-btn" title="切换主题">
+                        <span id="themeIcon">🌙</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Workspace -->
+            <div class="workspace">
+                <div id="loading" class="state-overlay hidden">
+                    <div class="spinner"></div>
+                    <p>正在分析海量数据...</p>
+                </div>
+                
+                <div id="emptyState" class="state-overlay">
+                    <div class="empty-icon">📊</div>
+                    <h2>未选定分析对象</h2>
+                    <p>请在左侧面板勾选测试数据，然后点击“分析数据”</p>
+                </div>
+                
+                <div id="resultContainer" class="chart-wrapper hidden">
+                    <div id="analysisSummary" class="analysis-summary"></div>
+                    <div id="reportPanel" class="report-panel hidden"></div>
+                    <div id="plotlyChart" class="chart-container"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Tag Edit Modal -->
+    <div id="tagModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>编辑标签 (Edit Tags)</h3>
+                <button id="closeModalBtn" class="icon-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modalFileName" class="modal-filename"></p>
+                <div class="tag-input-wrapper">
+                    <input type="text" id="newTagInput" placeholder="输入新标签并按回车添加...">
+                </div>
+                <div id="modalTagList" class="modal-tag-list">
+                    <!-- Current tags will be listed here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelTagBtn" class="btn btn-secondary">取消</button>
+                <button id="saveTagBtn" class="btn btn-primary" style="width: auto;">保存更改</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js?v=4"></script>
+</body>
+</html>

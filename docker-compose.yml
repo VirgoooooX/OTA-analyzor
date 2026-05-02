@@ -1,0 +1,16 @@
+services:
+  ota-analyzer:
+    build: .
+    container_name: ota-analyzer
+    ports:
+      - "8000:8000"
+    environment:
+      DATA_DIR: /app/data
+      UPLOAD_DIR: /app/uploads
+      TAGS_FILE: /app/tags.json
+    volumes:
+      - ./Raw Data:/app/data:ro
+      - ./uploads:/app/uploads
+      - ./tags.json:/app/tags.json
+    restart: unless-stopped
+

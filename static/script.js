@@ -424,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .map(cb => cb.value);
 
         const filteredData = currentData.data.filter(d => selectedChannels.includes(d.Channel));
-        
+
         // Remove previous click listeners to prevent duplicates
         if (plotlyChart.removeAllListeners) {
             plotlyChart.removeAllListeners('plotly_click');
@@ -435,6 +435,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (chartType === 'trend') {
             renderTrendPlot(filteredData, currentData.unique_cps, selectedChannels);
         }
+
+        // Force Plotly to fill the container — autosize alone won't do it on initial render
+        requestAnimationFrame(() => {
+            Plotly.Plots.resize(plotlyChart);
+        });
     }
 
     // Theme Toggle Logic
@@ -514,7 +519,9 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         });
 
-        Plotly.newPlot(plotlyChart, traces, layout, { responsive: true });
+        Plotly.newPlot(plotlyChart, traces, layout, { responsive: true, useResizeHandler: true }).then(() => {
+            Plotly.Plots.resize(plotlyChart);
+        });
     }
 
     let isolatedTrendSN = null;
@@ -589,7 +596,8 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         });
 
-        Plotly.newPlot(plotlyChart, traces, layout, { responsive: true }).then(() => {
+        Plotly.newPlot(plotlyChart, traces, layout, { responsive: true, useResizeHandler: true }).then(() => {
+            Plotly.Plots.resize(plotlyChart);
             plotlyChart.on('plotly_click', function(clickData) {
                 if (currentChartType !== 'trend') return;
                 

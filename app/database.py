@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS file_cache (
 
 
 def _connect():
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(str(DB_PATH))
     db.row_factory = sqlite3.Row
     db.execute("PRAGMA journal_mode=WAL")

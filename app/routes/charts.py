@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api", tags=["charts"])
 @router.post("/fetch_chart_data")
 def api_fetch_chart_data(request: GenerateRequest):
     full_df, unique_cps, reports, summary = get_cleaned_data(
-        request.files, request.includeFailData, request.channels
+        request.files, request.includeFailData, request.channels, request.data_type
     )
     if full_df is None:
         raise HTTPException(status_code=400, detail={"message": "所选文件无有效数据", "reports": reports})
@@ -33,6 +33,7 @@ def api_fetch_chart_data(request: GenerateRequest):
         "file_reports": reports,
         "available_channels": sorted(full_df["Channel"].dropna().unique().tolist()),
         "available_frequencies": sorted(full_df["Frequency"].dropna().unique().tolist()),
+        "data_type": request.data_type,
     }
 
 

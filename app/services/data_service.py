@@ -3,7 +3,7 @@ import os
 
 import pandas as pd
 
-from analysis import resolve_data_file, discover_power_delta_columns
+from analysis import resolve_data_file, discover_power_delta_columns, discover_raw_power_columns
 from app.config import DATA_DIR, UPLOAD_DIR
 from app.utils import find_header_row, source_label, get_cp_order
 
@@ -61,7 +61,7 @@ def filter_pass_records(df: pd.DataFrame):
     return df[df[status_col].astype(str).str.upper() == "PASS"]
 
 
-def process_file(filename: str, include_fail_data: bool, selected_channels: set | None):
+def process_file(filename: str, include_fail_data: bool, selected_channels: set | None, data_type: str = "delta"):
     ref = resolve_data_file(filename, str(DATA_DIR), str(UPLOAD_DIR))
     report = {
         "id": ref.file_id,
@@ -81,12 +81,16 @@ def process_file(filename: str, include_fail_data: bool, selected_channels: set 
     try:
         header_idx = find_header_row(str(ref.path))
         df_cols = pd.read_csv(str(ref.path), skiprows=header_idx, nrows=0)
-        matches = discover_power_delta_columns(df_cols.columns)
+        if data_type == "raw":
+            matches = discover_raw_power_columns(df_cols.columns)
+        else:
+            matches = discover_power_delta_columns(df_cols.columns)
         if selected_channels:
             matches = {k: v for k, v in matches.items() if k in selected_channels}
 
         if not matches:
-            report["message"] = "未识别到 Tx Power Delta 频点列"
+            label = "Raw Power" if data_type == "raw" else "Tx Power Delta"
+            report["message"] = f"未识别到 {label} 频点列"
             return None, report
 
         df = pd.read_csv(str(ref.path), skiprows=header_idx)
@@ -127,13 +131,13 @@ def process_file(filename: str, include_fail_data: bool, selected_channels: set 
         return None, report
 
 
-def get_cleaned_data(files: list, include_fail_data: bool = False, channels: list | None = None):
+def get_cleaned_data(files: list, include_fail_data: bool = False, channels: list | None = None, data_type: str = "delta"):
     all_dfs = []
     reports = []
     selected_channels = set(channels) if channels else None
 
     for filename in files:
-        df_melted, report = process_file(filename, include_fail_data, selected_channels)
+        df_melted, report = process_file(filename, include_fail_data, selected_channels, data_type)
         reports.append(report)
         if df_melted is not None and not df_melted.empty:
             all_dfs.append(df_melted)

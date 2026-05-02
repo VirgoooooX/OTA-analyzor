@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isolatedTrendSN: null,
         editingFileName: null,
         editingTags: [],
+        dataType: 'delta',
     };
 
     // Load files list
@@ -326,9 +327,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedFiles = Array.from(document.querySelectorAll('.file-item input[type="checkbox"]:checked'))
             .map(cb => cb.value);
         const includeFailData = document.getElementById('includeFailData').checked;
+        const dataType = document.getElementById('dataTypeSelect').value;
 
         if (selectedFiles.length === 0) return;
 
+        store.dataType = dataType;
         emptyState.classList.add('hidden');
         resultContainer.classList.add('hidden');
         loading.classList.remove('hidden');
@@ -338,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/fetch_chart_data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ files: selectedFiles, includeFailData: includeFailData })
+                body: JSON.stringify({ files: selectedFiles, includeFailData: includeFailData, data_type: dataType })
             });
 
             if (!response.ok) {
@@ -349,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
             store.currentData = await response.json();
             store.selectedCPs = [];
             renderSummary(store.currentData);
-            renderCPChips();
+            renderCPSelector();
             renderChart();
 
             loading.classList.add('hidden');
@@ -420,9 +423,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    function renderCPChips() {
+    // ── CP Multi-Select Dropdown ──
+    const cpMultiSelect = document.getElementById('cpMultiSelect');
+    const cpSelectTrigger = document.getElementById('cpSelectTrigger');
+    const cpSelectDropdown = document.getElementById('cpSelectDropdown');
+    const cpSelectText = document.getElementById('cpSelectText');
+    const cpAllCheckbox = document.getElementById('cpAll');
+    const cpOptionList = document.getElementById('cpOptionList');
+
+    function renderCPSelector() {
         const cpFilter = document.getElementById('cpFilter');
-        const cpChipRow = document.getElementById('cpChipRow');
 
         if (!store.currentData || !store.currentData.unique_cps || store.currentData.unique_cps.length === 0) {
             cpFilter.classList.add('hidden');
@@ -430,30 +440,71 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         cpFilter.classList.remove('hidden');
-        cpChipRow.innerHTML = '';
 
-        store.currentData.unique_cps.forEach(cp => {
-            const chip = document.createElement('span');
-            chip.className = 'cp-chip';
-            if (store.selectedCPs.includes(cp)) chip.classList.add('active');
-            chip.textContent = cp;
-            chip.addEventListener('click', () => {
-                if (store.selectedCPs.includes(cp)) {
-                    store.selectedCPs = store.selectedCPs.filter(c => c !== cp);
-                } else {
+        // Populate checkboxes
+        const allCPs = store.currentData.unique_cps;
+        cpOptionList.innerHTML = '';
+        allCPs.forEach(cp => {
+            const label = document.createElement('label');
+            label.className = 'multi-select-option';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = cp;
+            cb.checked = store.selectedCPs.includes(cp);
+            cb.addEventListener('change', () => {
+                if (cb.checked) {
                     store.selectedCPs = [...store.selectedCPs, cp];
+                } else {
+                    store.selectedCPs = store.selectedCPs.filter(c => c !== cp);
                 }
-                renderCPChips();
+                updateCPSelectState();
                 renderChart();
             });
-            cpChipRow.appendChild(chip);
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(cp));
+            cpOptionList.appendChild(label);
         });
+
+        updateCPSelectState();
     }
 
-    document.getElementById('cpClearBtn').addEventListener('click', () => {
-        store.selectedCPs = [];
-        renderCPChips();
+    function updateCPSelectState() {
+        const allCPs = store.currentData ? store.currentData.unique_cps : [];
+        const selected = store.selectedCPs;
+
+        if (selected.length === 0 || selected.length === allCPs.length) {
+            cpSelectText.textContent = 'All';
+            cpAllCheckbox.checked = true;
+            cpAllCheckbox.indeterminate = false;
+        } else {
+            cpSelectText.textContent = `${selected.length} selected`;
+            cpAllCheckbox.checked = false;
+            cpAllCheckbox.indeterminate = true;
+        }
+    }
+
+    cpSelectTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cpSelectDropdown.classList.toggle('hidden');
+        cpMultiSelect.classList.toggle('open');
+    });
+
+    cpAllCheckbox.addEventListener('change', () => {
+        if (cpAllCheckbox.checked) {
+            store.selectedCPs = [];
+        } else {
+            store.selectedCPs = [...store.currentData.unique_cps];
+        }
+        renderCPSelector();
         renderChart();
+    });
+
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+        if (!cpMultiSelect.contains(e.target)) {
+            cpSelectDropdown.classList.add('hidden');
+            cpMultiSelect.classList.remove('open');
+        }
     });
 
     // ── ResizeObserver: auto-resize Plotly whenever the chart container changes size ──
@@ -527,14 +578,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderBoxplot(data, categories, channels) {
         const isDark = document.body.classList.contains('dark-mode');
+        const isRaw = store.dataType === 'raw';
         const traces = [];
         const nChannels = channels.length;
-        
+
+        const yUnit = isRaw ? 'dBm' : 'dB';
+        const chartTitle = isRaw ? 'Tx Power — Raw Measurement (Boxplot)' : 'OTA Tx Power Drop (Boxplot)';
+
         channels.forEach((ch, chIdx) => {
             store.currentData.sources.forEach((source, sIdx) => {
                 const subset = data.filter(d => d.Channel === ch && d.Source === source);
                 if (subset.length === 0) return;
-                
+
                 traces.push({
                     x: subset.map(d => d.CheckPoint),
                     y: subset.map(d => d.Delta),
@@ -553,7 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const layout = {
-            title: { text: 'OTA Tx Power Drop (Boxplot)', font: { color: isDark ? '#f8fafc' : '#0f172a', size: 16 } },
+            title: { text: chartTitle, font: { color: isDark ? '#f8fafc' : '#0f172a', size: 16 } },
             grid: { rows: nChannels, columns: 1, pattern: 'independent' },
             autosize: true,
             hovermode: 'closest',
@@ -564,20 +619,44 @@ document.addEventListener('DOMContentLoaded', () => {
             boxmode: 'group'
         };
 
+        const limitValue = isRaw ? 2 : -6;
+        const limitLabel = isRaw ? 'Limit: 2 dBm' : 'Limit: -6 dB';
+        const limitColor = isDark ? '#f87171' : '#ef4444';
+
+        layout.shapes = [];
+        layout.annotations = [];
+
         channels.forEach((ch, i) => {
-            layout[`yaxis${i + 1}`] = { 
-                title: ch, 
-                zeroline: true, 
-                zerolinecolor: isDark ? '#334155' : '#e2e8f0', 
+            layout[`yaxis${i + 1}`] = {
+                title: `${ch} (${yUnit})`,
+                zeroline: true,
+                zerolinecolor: isDark ? '#334155' : '#e2e8f0',
                 gridcolor: isDark ? '#1e293b' : '#f1f5f9'
             };
-            layout[`xaxis${i + 1}`] = { 
-                categoryorder: 'array', 
+            layout[`xaxis${i + 1}`] = {
+                categoryorder: 'array',
                 categoryarray: categories,
                 gridcolor: isDark ? '#1e293b' : '#f1f5f9',
                 tickangle: 45,
                 tickfont: { size: 10 }
             };
+            // Horizontal limit line per subplot
+            layout.shapes.push({
+                type: 'line',
+                x0: 0, x1: 1,
+                xref: 'paper',
+                y0: limitValue, y1: limitValue,
+                yref: `y${i + 1}`,
+                line: { color: limitColor, width: 2, dash: 'dash' }
+            });
+            layout.annotations.push({
+                x: 1, y: limitValue,
+                xref: 'paper', yref: `y${i + 1}`,
+                text: limitLabel,
+                showarrow: false,
+                xanchor: 'right', yanchor: 'bottom',
+                font: { color: limitColor, size: 10 }
+            });
         });
 
         Plotly.newPlot(plotlyChart, traces, layout, { responsive: true, useResizeHandler: true }).then(() => {
@@ -587,8 +666,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderTrendPlot(data, categories, channels) {
         const isDark = document.body.classList.contains('dark-mode');
+        const isRaw = store.dataType === 'raw';
         const traces = [];
         const nChannels = channels.length;
+
+        const yUnit = isRaw ? 'dBm' : 'dB';
+        const chartTitle = isRaw ? 'Individual Unit Trends — Raw Power (dBm)' : 'Individual Unit Trends — Tx Power Drop (Click a line to isolate)';
 
         channels.forEach((ch, chIdx) => {
             const chData = data.filter(d => d.Channel === ch);
@@ -630,29 +713,52 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        const limitValue = isRaw ? 2 : -6;
+        const limitLabel = isRaw ? 'Limit: 2 dBm' : 'Limit: -6 dB';
+        const limitColor = isDark ? '#f87171' : '#ef4444';
+
         const layout = {
-            title: { text: 'Individual Unit Trends (Click a line to isolate)', font: { color: isDark ? '#f8fafc' : '#0f172a', size: 16 } },
+            title: { text: chartTitle, font: { color: isDark ? '#f8fafc' : '#0f172a', size: 16 } },
             grid: { rows: nChannels, columns: 1, pattern: 'independent' },
             autosize: true,
             hovermode: 'closest',
             paper_bgcolor: 'rgba(0,0,0,0)',
             plot_bgcolor: 'rgba(0,0,0,0)',
             font: { color: isDark ? '#94a3b8' : '#475569', family: 'Inter, sans-serif' },
-            margin: { t: 60, b: 80, l: 60, r: 20 }
+            margin: { t: 60, b: 80, l: 60, r: 20 },
+            shapes: [],
+            annotations: []
         };
 
         channels.forEach((ch, i) => {
-            layout[`yaxis${i + 1}`] = { 
-                title: ch,
+            layout[`yaxis${i + 1}`] = {
+                title: `${ch} (${yUnit})`,
                 gridcolor: isDark ? '#1e293b' : '#f1f5f9'
             };
-            layout[`xaxis${i + 1}`] = { 
-                categoryorder: 'array', 
+            layout[`xaxis${i + 1}`] = {
+                categoryorder: 'array',
                 categoryarray: categories,
                 gridcolor: isDark ? '#1e293b' : '#f1f5f9',
                 tickangle: 45,
                 tickfont: { size: 10 }
             };
+            // Horizontal limit line per subplot
+            layout.shapes.push({
+                type: 'line',
+                x0: 0, x1: 1,
+                xref: 'paper',
+                y0: limitValue, y1: limitValue,
+                yref: `y${i + 1}`,
+                line: { color: limitColor, width: 2, dash: 'dash' }
+            });
+            layout.annotations.push({
+                x: 1, y: limitValue,
+                xref: 'paper', yref: `y${i + 1}`,
+                text: limitLabel,
+                showarrow: false,
+                xanchor: 'right', yanchor: 'bottom',
+                font: { color: limitColor, size: 10 }
+            });
         });
 
         Plotly.newPlot(plotlyChart, traces, layout, { responsive: true, useResizeHandler: true }).then(() => {
@@ -686,6 +792,12 @@ document.addEventListener('DOMContentLoaded', () => {
     channelCheckboxes.forEach(cb => cb.addEventListener('change', renderChart));
     generateBtn.addEventListener('click', fetchData);
     refreshBtn.addEventListener('click', loadFiles);
+
+    // Data type selector: re-fetch when switching delta ↔ raw
+    document.getElementById('dataTypeSelect').addEventListener('change', () => {
+        const hasSelection = document.querySelectorAll('.file-item input[type="checkbox"]:checked').length > 0;
+        if (hasSelection) fetchData();
+    });
 
     // Initial Load
     loadFiles();

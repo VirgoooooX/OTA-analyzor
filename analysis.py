@@ -56,7 +56,7 @@ def parse_test_column(column: str) -> dict[str, str | bool]:
     text = str(column)
     lowered = text.lower()
     freq_match = re.search(r"freq\s*=\s*(\d+)", lowered)
-    tc_match = re.search(r"(?:^|[:\s])tc\s*=\s*([^:\s]+)", lowered)
+    tc_match = re.search(r"(?:^|[;:\s])tc\s*=\s*([^;:\s]+)", lowered)
 
     return {
         "frequency": freq_match.group(1) if freq_match else "",
@@ -105,6 +105,47 @@ def discover_power_delta_columns(columns: Iterable[str]) -> dict[str, DeltaColum
         if score < 6:
             continue
 
+        candidate = DeltaColumnMatch(
+            column=str(column),
+            frequency=frequency,
+            channel=channel,
+            score=score,
+        )
+        current = best_by_channel.get(channel)
+        if current is None or candidate.score > current.score:
+            best_by_channel[channel] = candidate
+
+    return best_by_channel
+
+
+def discover_raw_power_columns(columns: Iterable[str]) -> dict[str, DeltaColumnMatch]:
+    """Discover raw (non-delta) power measurement columns — the absolute dBm values.
+
+    These are the counterpart to delta columns: same frequency→channel mapping,
+    but the column name lacks "_Delta", so is_delta=False.
+    Scoring: power(4) + bt(1) + tc=power(2) = 7, threshold >= 6.
+    Excludes ACP (adjacent channel power) columns which share tc=Power but differ in subtc.
+    """
+    best_by_channel: dict[str, DeltaColumnMatch] = {}
+
+    for column in columns:
+        parsed = parse_test_column(column)
+        frequency = str(parsed["frequency"])
+        channel = channel_for_frequency(frequency)
+        if not channel:
+            continue
+
+        if not parsed["is_power"]:
+            continue
+        if parsed["is_delta"]:
+            continue
+        if parsed["test_class"] != "power":
+            continue
+        # Exclude ACP columns (subtc=ACP) — adjacent channel power, not main power
+        if re.search(r"(?:^|[;:\s])subtc\s*=\s*acp", column.lower()):
+            continue
+
+        score = 7  # power(4) + bt(1) + tc=power(2)
         candidate = DeltaColumnMatch(
             column=str(column),
             frequency=frequency,

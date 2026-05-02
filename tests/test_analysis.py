@@ -51,6 +51,63 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(resolved.source_type, "upload")
         self.assertEqual(resolved.display_name, "upload.csv")
 
+    def test_discover_raw_power_columns_all_three_naming_patterns(self):
+        # Pattern 1 — B529: ; separator, _Delta on subtc
+        cols_p1 = [
+            "tech=BT;rate=1LE;pwr=8.0;freq=2402;tc=Power subtc=Avg",
+            "tech=BT;rate=1LE;pwr=8.0;freq=2402;tc=Power subtc=Avg_Delta",
+        ]
+        raw = analysis.discover_raw_power_columns(cols_p1)
+        self.assertIn("Tx_LC", raw)
+        self.assertIn("Avg", raw["Tx_LC"].column)
+        self.assertNotIn("Delta", raw["Tx_LC"].column)
+
+        # Pattern 2 — B519a: : separator, _Delta on freq
+        cols_p2 = [
+            "tc=Power tech=BT:subtc=Avg ant=0:rate=1LE:pwr=8:freq=2402",
+            "tc=Power tech=BT:subtc=Avg ant=0:rate=1LE:pwr=8:freq=2402_Delta",
+        ]
+        raw = analysis.discover_raw_power_columns(cols_p2)
+        self.assertIn("Tx_LC", raw)
+        self.assertNotIn("Delta", raw["Tx_LC"].column.lower())
+
+        # Pattern 3 — RX_Processed: subtc=Power_Abs / subtc=Power_Delta
+        cols_p3 = [
+            "tech=BT;rate=1LE;pwr=8.0;freq=2402;tc=Power subtc=Power_Abs",
+            "tech=BT;rate=1LE;pwr=8.0;freq=2402;tc=Power subtc=Power_Delta",
+        ]
+        raw = analysis.discover_raw_power_columns(cols_p3)
+        self.assertIn("Tx_LC", raw)
+        self.assertIn("Power_Abs", raw["Tx_LC"].column)
+
+    def test_discover_raw_power_columns_excludes_acp(self):
+        cols = [
+            "tech=BT;rate=1LE;pwr=8.0;freq=2402;tc=Power subtc=Power_Abs",
+            "tech=BT;rate=1LE;pwr=8.0;freq=2402;tc=Power subtc=ACP subsubtc=1",
+        ]
+        raw = analysis.discover_raw_power_columns(cols)
+        self.assertIn("Tx_LC", raw)
+        self.assertIn("Power_Abs", raw["Tx_LC"].column)
+
+    def test_parse_test_column_extracts_tc_across_naming_patterns(self):
+        from analysis import parse_test_column
+
+        # Pattern 1: ; separator
+        p = parse_test_column("tech=BT;rate=1LE;freq=2402;tc=Power subtc=Avg")
+        self.assertEqual(p["test_class"], "power")
+        self.assertTrue(p["is_power"])
+        self.assertFalse(p["is_delta"])
+
+        # Pattern 2: : separator, tc at start
+        p = parse_test_column("tc=Power tech=BT:subtc=Avg:freq=2402")
+        self.assertEqual(p["test_class"], "power")
+
+        # Pattern 3: ; separator, subtc=Power_Abs
+        p = parse_test_column("tech=BT;freq=2402;tc=Power subtc=Power_Abs")
+        self.assertEqual(p["test_class"], "power")
+        self.assertTrue(p["is_power"])
+        self.assertFalse(p["is_delta"])
+
     def test_resolve_data_file_supports_raw_file_ids(self):
         TEMP_ROOT.mkdir(exist_ok=True)
         data_dir = TEMP_ROOT / "data"

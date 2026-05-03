@@ -15,6 +15,7 @@
     --accent-hover: #115e59;
     --accent-light: #e6fffb;
     --accent-text: #0f766e;
+    --upload-border: #6ea9a8;
 
     --success: #10b981;
     --danger: #ef4444;
@@ -45,6 +46,7 @@ body.dark-mode {
     --accent-hover: #5eead4;
     --accent-light: #134e4a;
     --accent-text: #5eead4;
+    --upload-border: #30928f;
 }
 
 * {
@@ -143,7 +145,7 @@ body {
     gap: 0.75rem;
     align-items: center;
     padding: 0.85rem;
-    border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--border));
+    border: 1px dashed var(--upload-border);
     border-radius: var(--radius-md);
     background: linear-gradient(135deg, var(--accent-light), var(--bg-sidebar));
     cursor: pointer;
@@ -246,6 +248,7 @@ body.dark-mode .upload-zone.raw {
     font-size: 0.75rem;
     cursor: pointer;
     transition: all 0.2s;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -383,6 +386,7 @@ body.dark-mode .upload-zone.raw {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
+    -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(2px);
     display: flex;
     align-items: center;
@@ -580,6 +584,10 @@ body.dark-mode .removable-tag {
     color: white;
     width: 100%;
     box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+#saveTagBtn {
+    width: auto;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -902,6 +910,7 @@ body.dark-mode .report-panel {
     color: var(--text-primary);
     cursor: pointer;
     transition: background-color 0.1s;
+    -webkit-user-select: none;
     user-select: none;
 }
 

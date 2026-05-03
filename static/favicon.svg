@@ -1,8 +1,13 @@
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="24" height="24" fill="#141416"/>
+  <style>
+    .center-path { stroke: #141416; }
+    @media (prefers-color-scheme: dark) {
+      .center-path { stroke: #ffffff; }
+    }
+  </style>
   <path d="M8 9c-1.5 1.5-1.5 4.5 0 6" stroke="#ff6b6b" stroke-width="1.5" stroke-linecap="round"/>
   <path d="M5 6c-3 3-3 9 0 12" stroke="#ff6b6b" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
   <path d="M16 9c1.5 1.5 1.5 4.5 0 6" stroke="#4096ff" stroke-width="1.5" stroke-linecap="round"/>
   <path d="M19 6c3 3 3 9 0 12" stroke="#4096ff" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
-  <path d="M9.5 14.5l5-5-2.5-2.5v10l2.5-2.5-5-5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M9.5 14.5l5-5-2.5-2.5v10l2.5-2.5-5-5" class="center-path" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

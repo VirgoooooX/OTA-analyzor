@@ -18,6 +18,11 @@ on:
       - ".gitignore"
       - ".dockerignore"
   workflow_dispatch:
+    inputs:
+      no_cache:
+        description: "Build without cache"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -100,6 +105,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          no-cache: ${{ github.event.inputs.no_cache == 'true' }}
           provenance: true
           sbom: true
 

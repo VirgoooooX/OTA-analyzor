@@ -16,27 +16,27 @@ $script:StartTime = Get-Date
 
 function Write-Step {
     param([string]$Title)
-    Write-Host "`n━━━ $Title ━━━" -ForegroundColor Cyan
+    Write-Host "=== $Title ===" -ForegroundColor Cyan
 }
 
 function Write-Info {
     param([string]$Text)
-    Write-Host "  → $Text"
+    Write-Host "  -> $Text"
 }
 
 function Write-Success {
     param([string]$Text)
-    Write-Host "  ✔ $Text" -ForegroundColor Green
+    Write-Host "  [OK] $Text" -ForegroundColor Green
 }
 
 function Write-Warn {
     param([string]$Text)
-    Write-Host "  ⚠ $Text" -ForegroundColor Yellow
+    Write-Host "  [!] $Text" -ForegroundColor Yellow
 }
 
 function Write-Error {
     param([string]$Text)
-    Write-Host "  ✘ $Text" -ForegroundColor Red
+    Write-Host "  [X] $Text" -ForegroundColor Red
 }
 
 function Get-NextVersion {
@@ -91,7 +91,7 @@ function Compare-Version {
     return 0
 }
 
-# ── Sanity checks ──────────────────────────────────────
+# --- Sanity checks ---
 
 Write-Step "Checking repository"
 git rev-parse --is-inside-work-tree 2>$null | Out-Null
@@ -102,7 +102,7 @@ if ($LASTEXITCODE -ne 0) {
 
 $branch = (git branch --show-current).Trim()
 if (-not $branch) {
-    Write-Error "Detached HEAD — cannot publish."
+    Write-Error "Detached HEAD - cannot publish."
     exit 1
 }
 Write-Info "Branch: $branch"
@@ -123,7 +123,7 @@ if ($behind -gt 0) {
     Write-Warn "Local is $behind commit(s) behind $Remote/$branch. Consider pulling first."
 }
 
-# ── Determine version ──────────────────────────────────
+# --- Determine version ---
 
 Write-Step "Versioning"
 $version = Get-NextVersion
@@ -135,14 +135,30 @@ if (-not $Message) {
 Write-Info "Next version:  $version"
 Write-Info "Commit message: $Message"
 
-# ── Tests ──────────────────────────────────────────────
+# --- Update version in index.html ---
+
+Write-Step "Updating index.html version"
+$indexPath = Join-Path $PSScriptRoot "..\static\index.html"
+if (Test-Path $indexPath) {
+    $content = Get-Content $indexPath -Raw
+    # Replace both the placeholder and any existing semantic version
+    $newContent = $content -replace 'v=AUTO_VERSION|v=\d+\.\d+\.\d+', "v=$versionPlain"
+    
+    if (-not $DryRun) {
+        Set-Content $indexPath $newContent -NoNewline
+        Write-Success "Updated index.html to v=$versionPlain"
+    } else {
+        Write-Info "[DryRun] Would update index.html to v=$versionPlain"
+    }
+} else {
+    Write-Warn "index.html not found at $indexPath"
+}
+
+# --- Tests ---
 
 if (-not $SkipTests) {
     Write-Step "Running unit tests"
 
-    # Try several Python paths — Windows App Store aliases (python.exe in
-    # %LOCALAPPDATA%\Microsoft\WindowsApps) often fail with exit code 49
-    # or open the Store instead of running the interpreter.
     $pythonExe = $null
     $candidates = @(
         "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
@@ -168,16 +184,16 @@ if (-not $SkipTests) {
         }
         Write-Success "Tests passed"
     } else {
-        Write-Warn "Python not found — skipping local tests. CI will run them."
+        Write-Warn "Python not found - skipping local tests. CI will run them."
     }
 } else {
     Write-Warn "Tests skipped via -SkipTests"
 }
 
-# ── Dry-run bailout ────────────────────────────────────
+# --- Dry-run bailout ---
 
 if ($DryRun) {
-    Write-Step "DRY RUN — no changes made"
+    Write-Step "DRY RUN - no changes made"
     Write-Info "Version that would be created: $version"
     Write-Info "Would push to: $Remote/$branch"
     $elapsed = [Math]::Round(((Get-Date) - $script:StartTime).TotalSeconds, 1)
@@ -185,7 +201,7 @@ if ($DryRun) {
     exit 0
 }
 
-# ── Staging & commit ───────────────────────────────────
+# --- Staging & commit ---
 
 $hasChanges = (git status --porcelain).Length -gt 0
 
@@ -199,10 +215,10 @@ if ($hasChanges) {
     git commit -m $Message
     Write-Success "Commit created"
 } else {
-    Write-Info "No local changes to commit — creating tag on current HEAD"
+    Write-Info "No local changes to commit - creating tag on current HEAD"
 }
 
-# ── Tag & push ─────────────────────────────────────────
+# --- Tag & push ---
 
 Write-Step "Creating tag $version"
 git tag -a $version -m $Message
@@ -227,13 +243,13 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Success "Tag $version pushed"
 
-# ── Summary ────────────────────────────────────────────
+# --- Summary ---
 
 $elapsed = [Math]::Round(((Get-Date) - $script:StartTime).TotalSeconds, 1)
-Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
+Write-Host "===========================================" -ForegroundColor Green
 Write-Host "  Published $version" -ForegroundColor Green
 Write-Host "  Image: ghcr.io/virgooooox/ota-analyzor:$versionPlain" -ForegroundColor Green
 Write-Host "  Took: ${elapsed}s" -ForegroundColor Green
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
+Write-Host "===========================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "GitHub Actions build: https://github.com/VirgoooooX/OTA-analyzor/actions" -ForegroundColor DarkGray
+Write-Host "GitHub Actions build" -ForegroundColor DarkGray

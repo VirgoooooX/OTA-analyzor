@@ -139,9 +139,29 @@ Write-Info "Commit message: $Message"
 
 if (-not $SkipTests) {
     Write-Step "Running unit tests"
-    $python = Get-Command python -ErrorAction SilentlyContinue
-    if ($python) {
-        python -m unittest tests.test_analysis -v
+
+    # Try several Python paths — Windows App Store aliases (python.exe in
+    # %LOCALAPPDATA%\Microsoft\WindowsApps) often fail with exit code 49
+    # or open the Store instead of running the interpreter.
+    $pythonExe = $null
+    $candidates = @(
+        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
+        "$env:ProgramFiles\Python312\python.exe",
+        "$env:ProgramFiles\Python311\python.exe",
+        "python3",
+        "python"
+    )
+    foreach ($candidate in $candidates) {
+        $found = Get-Command $candidate -ErrorAction SilentlyContinue
+        if ($found) {
+            $pythonExe = $found.Source
+            break
+        }
+    }
+
+    if ($pythonExe) {
+        & $pythonExe -m unittest tests.test_analysis -v
         if ($LASTEXITCODE -ne 0) {
             Write-Error "Tests failed. Use -SkipTests to bypass (not recommended)."
             exit 1

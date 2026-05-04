@@ -228,6 +228,17 @@ document.addEventListener('DOMContentLoaded', () => {
     bindUpload(tempUploadZone, tempUploadInput, '/api/upload', '临时数据上传完成');
     bindUpload(rawUploadZone, rawUploadInput, '/api/rawdata/upload', 'Raw Data 上传完成');
 
+    // Upload panel toggle
+    const uploadToggleBtn = document.getElementById('uploadToggleBtn');
+    const uploadPanel = document.getElementById('uploadPanel');
+    const uploadBar = uploadToggleBtn.parentElement;
+
+    uploadToggleBtn.addEventListener('click', () => {
+        const isCollapsed = uploadPanel.classList.contains('collapsed');
+        uploadPanel.classList.toggle('collapsed', !isCollapsed);
+        uploadBar.classList.toggle('expanded', isCollapsed);
+    });
+
     // Modal Logic
     function openTagModal(fileName, tags) {
         store.editingFileName = fileName;
@@ -612,7 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
             grid: { rows: nChannels, columns: 1, pattern: 'independent' },
             autosize: true,
             hovermode: 'closest',
-            margin: { t: 60, b: 80, l: 60, r: 20 },
+            margin: { t: 30, b: 30, l: 40, r: 10 },
             paper_bgcolor: 'rgba(0,0,0,0)',
             plot_bgcolor: 'rgba(0,0,0,0)',
             font: { color: isDark ? '#94a3b8' : '#475569', family: 'Inter, sans-serif' },
@@ -725,7 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
             paper_bgcolor: 'rgba(0,0,0,0)',
             plot_bgcolor: 'rgba(0,0,0,0)',
             font: { color: isDark ? '#94a3b8' : '#475569', family: 'Inter, sans-serif' },
-            margin: { t: 60, b: 80, l: 60, r: 20 },
+            margin: { t: 30, b: 30, l: 40, r: 10 },
             shapes: [],
             annotations: []
         };

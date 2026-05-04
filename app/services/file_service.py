@@ -5,7 +5,8 @@ import pandas as pd
 
 from analysis import resolve_data_file, discover_power_delta_columns
 from app.config import DATA_DIR, UPLOAD_DIR
-from app.database import get_file_cache, set_file_cache
+from app.database import get_file_cache, set_file_cache, get_file_metadata, set_file_metadata
+from app.services.filename_parser import parse_filename
 from app.services.tag_service import list_all_tags
 from app.utils import find_header_row, file_entry
 
@@ -64,6 +65,16 @@ def get_cached_or_extract(file_path: str) -> dict | None:
     return metadata
 
 
+def get_cached_or_parse_filename(filename: str) -> dict:
+    """Return cached parsed filename metadata, or parse and cache it."""
+    cached = get_file_metadata(filename)
+    if cached is not None:
+        return cached
+    parsed = parse_filename(filename)
+    set_file_metadata(filename, parsed)
+    return parsed
+
+
 def list_files() -> dict:
     """Scan data and upload dirs, return {files, all_tags} with cached metadata."""
     tags_data, all_tags = list_all_tags()
@@ -78,7 +89,8 @@ def list_files() -> dict:
         all_tags_set.update(f_tags)
         ref = resolve_data_file(f"raw:{name}", str(DATA_DIR), str(UPLOAD_DIR))
         metadata = get_cached_or_extract(str(ref.path))
-        files_with_tags.append(file_entry(ref, f_tags, metadata))
+        parsed = get_cached_or_parse_filename(name)
+        files_with_tags.append(file_entry(ref, f_tags, metadata, parsed))
 
     # Uploaded files
     upload_pattern = os.path.join(str(UPLOAD_DIR), "*.csv")
@@ -87,6 +99,7 @@ def list_files() -> dict:
         all_tags_set.add("Uploaded")
         ref = resolve_data_file(f"upload:{name}", str(DATA_DIR), str(UPLOAD_DIR))
         metadata = get_cached_or_extract(str(ref.path))
-        files_with_tags.append(file_entry(ref, ["Uploaded"], metadata))
+        parsed = get_cached_or_parse_filename(name)
+        files_with_tags.append(file_entry(ref, ["Uploaded"], metadata, parsed))
 
     return {"files": files_with_tags, "all_tags": sorted(all_tags_set)}

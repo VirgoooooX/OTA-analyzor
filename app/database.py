@@ -30,6 +30,19 @@ CREATE TABLE IF NOT EXISTS file_cache (
     unique_cps TEXT NOT NULL DEFAULT '[]',
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS file_metadata (
+    filename TEXT NOT NULL UNIQUE,
+    project TEXT NOT NULL DEFAULT '',
+    build TEXT NOT NULL DEFAULT '',
+    cfg TEXT NOT NULL DEFAULT '',
+    precondition TEXT NOT NULL DEFAULT '',
+    checkpoint TEXT NOT NULL DEFAULT '',
+    test_item TEXT NOT NULL DEFAULT '',
+    extra TEXT NOT NULL DEFAULT '',
+    display_parts TEXT NOT NULL DEFAULT '[]',
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 
@@ -53,29 +66,52 @@ def init_db():
     cur = db.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'"
     )
-    if cur.fetchone() is not None:
-        return  # Already initialized
+    if cur.fetchone() is None:
+        # Fresh install
+        db.executescript(DDL)
+        db.execute("INSERT INTO schema_version (version) VALUES (2)")
 
-    db.executescript(DDL)
-    db.execute("INSERT INTO schema_version (version) VALUES (1)")
+        # Migrate from tags.json if it exists
+        if TAGS_FILE.is_file():
+            try:
+                with open(TAGS_FILE, "r", encoding="utf-8") as f:
+                    legacy_tags = json.load(f)
+                count = 0
+                for filename, tag_list in legacy_tags.items():
+                    db.execute(
+                        "INSERT OR REPLACE INTO tags (filename, tags_json) VALUES (?, ?)",
+                        (filename, json.dumps(tag_list, ensure_ascii=False)),
+                    )
+                    count += 1
+                print(f"Migrated {count} tag entries from {TAGS_FILE}")
+            except Exception as e:
+                print(f"Failed to migrate tags.json: {e}")
 
-    # Migrate from tags.json if it exists
-    if TAGS_FILE.is_file():
-        try:
-            with open(TAGS_FILE, "r", encoding="utf-8") as f:
-                legacy_tags = json.load(f)
-            count = 0
-            for filename, tag_list in legacy_tags.items():
-                db.execute(
-                    "INSERT OR REPLACE INTO tags (filename, tags_json) VALUES (?, ?)",
-                    (filename, json.dumps(tag_list, ensure_ascii=False)),
-                )
-                count += 1
-            print(f"Migrated {count} tag entries from {TAGS_FILE}")
-        except Exception as e:
-            print(f"Failed to migrate tags.json: {e}")
+        db.commit()
+        return
 
-    db.commit()
+    # Schema migration
+    row = db.execute("SELECT version FROM schema_version").fetchone()
+    current_version = row["version"] if row else 1
+
+    if current_version < 2:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS file_metadata (
+                filename TEXT NOT NULL UNIQUE,
+                project TEXT NOT NULL DEFAULT '',
+                build TEXT NOT NULL DEFAULT '',
+                cfg TEXT NOT NULL DEFAULT '',
+                precondition TEXT NOT NULL DEFAULT '',
+                checkpoint TEXT NOT NULL DEFAULT '',
+                test_item TEXT NOT NULL DEFAULT '',
+                extra TEXT NOT NULL DEFAULT '',
+                display_parts TEXT NOT NULL DEFAULT '[]',
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+        db.execute("UPDATE schema_version SET version = 2")
+        print("Migrated database schema to version 2 (added file_metadata table)")
+        db.commit()
 
 
 # ── Tag CRUD ────────────────────────────────────────────
@@ -150,6 +186,51 @@ def set_file_cache(file_path: str, mtime: float, metadata: dict):
             json.dumps(metadata.get("channels", [])),
             json.dumps(metadata.get("frequencies", [])),
             json.dumps(metadata.get("unique_cps", [])),
+        ),
+    )
+    db.commit()
+
+
+# ── File Metadata CRUD ──────────────────────────────────
+
+
+def get_file_metadata(filename: str) -> dict | None:
+    db = get_db()
+    row = db.execute(
+        "SELECT project, build, cfg, precondition, checkpoint, test_item, extra, display_parts "
+        "FROM file_metadata WHERE filename = ?",
+        (filename,),
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "project": row["project"],
+        "build": row["build"],
+        "cfg": row["cfg"],
+        "precondition": row["precondition"],
+        "checkpoint": row["checkpoint"],
+        "test_item": row["test_item"],
+        "extra": row["extra"],
+        "display_parts": json.loads(row["display_parts"]),
+    }
+
+
+def set_file_metadata(filename: str, parsed: dict):
+    db = get_db()
+    db.execute(
+        "INSERT OR REPLACE INTO file_metadata "
+        "(filename, project, build, cfg, precondition, checkpoint, test_item, extra, display_parts, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+        (
+            filename,
+            parsed.get("project", ""),
+            parsed.get("build", ""),
+            parsed.get("cfg", ""),
+            parsed.get("precondition", ""),
+            parsed.get("checkpoint", ""),
+            parsed.get("test_item", ""),
+            parsed.get("extra", ""),
+            json.dumps(parsed.get("display_parts", []), ensure_ascii=False),
         ),
     )
     db.commit()

@@ -47,7 +47,7 @@ def source_label(filename: str) -> str:
     return Path(filename).name.replace("Organized_", "").replace(".csv", "")
 
 
-def file_entry(file_ref: DataFileRef, tags=None, metadata=None):
+def file_entry(file_ref: DataFileRef, tags=None, metadata=None, parsed=None):
     source_name = "upload" if file_ref.source_type == "upload" else "raw"
     entry = {
         "id": file_ref.file_id,
@@ -57,4 +57,6 @@ def file_entry(file_ref: DataFileRef, tags=None, metadata=None):
     }
     if metadata:
         entry["metadata"] = metadata
+    if parsed:
+        entry["parsed"] = parsed
     return entry

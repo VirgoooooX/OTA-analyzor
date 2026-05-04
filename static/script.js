@@ -99,11 +99,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const fileId = fileObj.id || fileName;
             const source = fileObj.source || 'raw';
             const fileTags = fileObj.tags || [];
+            const parsed = fileObj.parsed || null;
             
             const item = document.createElement('div');
             item.className = 'file-item';
             item.dataset.name = fileName;
             item.dataset.tags = JSON.stringify(fileTags);
+            item.title = fileName; // Full filename on hover
             
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
@@ -114,25 +116,47 @@ document.addEventListener('DOMContentLoaded', () => {
             const infoDiv = document.createElement('div');
             infoDiv.className = 'file-info';
 
-            const label = document.createElement('label');
-            label.htmlFor = `file-${index}`;
-            label.textContent = fileName;
+            // Line 1: Structured display name
+            const displayLabel = document.createElement('label');
+            displayLabel.htmlFor = `file-${index}`;
+            if (parsed && parsed.display_parts && parsed.display_parts.length > 0) {
+                displayLabel.textContent = parsed.display_parts.join(' · ');
+            } else {
+                // Fallback: strip prefix/suffix for cleaner display
+                displayLabel.textContent = fileName
+                    .replace(/^Organized_/, '')
+                    .replace(/[-_]?OTA_Data.*$/i, '')
+                    .replace(/[-_]?BT-OTA-[\d.]+.*$/i, '')
+                    .replace(/\.csv$/i, '');
+            }
+            displayLabel.className = 'file-display-name';
 
+            // Line 2: Tags only (no source badge for raw files)
             const tagsDiv = document.createElement('div');
             tagsDiv.className = 'file-tags';
-            const sourceBadge = document.createElement('span');
-            sourceBadge.className = `source-badge ${source === 'upload' ? 'upload' : 'raw'}`;
-            sourceBadge.textContent = source === 'upload' ? '临时' : 'Raw Data';
-            tagsDiv.appendChild(sourceBadge);
+            
+            // Show source badge only for uploaded files
+            if (source === 'upload') {
+                const sourceBadge = document.createElement('span');
+                sourceBadge.className = 'source-badge upload';
+                sourceBadge.textContent = '临时';
+                tagsDiv.appendChild(sourceBadge);
+            }
+            
             fileTags.forEach(tag => {
+                // Skip "Uploaded" tag since we already show the badge
+                if (tag === 'Uploaded') return;
                 const tagSpan = document.createElement('span');
                 tagSpan.className = 'mini-tag';
                 tagSpan.textContent = tag;
                 tagsDiv.appendChild(tagSpan);
             });
 
-            infoDiv.appendChild(label);
-            infoDiv.appendChild(tagsDiv);
+            infoDiv.appendChild(displayLabel);
+            // Only add tags row if there are visible tags
+            if (tagsDiv.children.length > 0) {
+                infoDiv.appendChild(tagsDiv);
+            }
 
             const editBtn = document.createElement('button');
             editBtn.className = 'edit-tags-btn';
@@ -233,10 +257,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadPanel = document.getElementById('uploadPanel');
     const uploadBar = uploadToggleBtn.parentElement;
 
-    uploadToggleBtn.addEventListener('click', () => {
+    uploadToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         const isCollapsed = uploadPanel.classList.contains('collapsed');
         uploadPanel.classList.toggle('collapsed', !isCollapsed);
-        uploadBar.classList.toggle('expanded', isCollapsed);
+    });
+
+    // Close upload panel on outside click
+    document.addEventListener('click', (e) => {
+        if (!uploadPanel.contains(e.target) && !uploadToggleBtn.contains(e.target)) {
+            uploadPanel.classList.add('collapsed');
+        }
     });
 
     // Modal Logic

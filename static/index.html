@@ -39,45 +39,43 @@
             <div class="sidebar-section flex-1">
                 <div class="section-title">
                     <span>数据源 (Data Source)</span>
-                    <button id="refreshBtn" class="icon-btn" title="刷新列表">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                            </path>
-                        </svg>
-                    </button>
-                </div>
-                <div class="upload-bar">
-                    <button id="uploadToggleBtn" class="upload-toggle-btn" type="button">
-                        <svg class="upload-toggle-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                        </svg>
-                        上传数据
-                        <svg class="upload-chevron" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </button>
-                    <div class="upload-panel collapsed" id="uploadPanel">
-                        <div class="upload-zone" id="tempUploadZone">
-                            <input type="file" id="tempUploadInput" accept=".csv" multiple hidden>
-                            <div class="upload-mark">CSV</div>
-                            <div>
-                                <strong>上传临时数据</strong>
-                                <span>仅用于临时对比</span>
+                    <div class="title-actions">
+                        <div class="upload-dropdown-container">
+                            <button id="uploadToggleBtn" class="icon-btn" title="上传数据">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                                </svg>
+                            </button>
+                            <div class="upload-dropdown-menu collapsed" id="uploadPanel">
+                                <div class="upload-zone" id="tempUploadZone">
+                                    <input type="file" id="tempUploadInput" accept=".csv" multiple hidden>
+                                    <div class="upload-mark">CSV</div>
+                                    <div>
+                                        <strong>上传临时数据</strong>
+                                        <span>仅用于临时对比</span>
+                                    </div>
+                                </div>
+                                <div class="upload-zone raw" id="rawUploadZone">
+                                    <input type="file" id="rawUploadInput" accept=".csv" multiple hidden>
+                                    <div class="upload-mark">RAW</div>
+                                    <div>
+                                        <strong>上传正式 Raw Data</strong>
+                                        <span>保存到公共数据库</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="upload-zone raw" id="rawUploadZone">
-                            <input type="file" id="rawUploadInput" accept=".csv" multiple hidden>
-                            <div class="upload-mark">RAW</div>
-                            <div>
-                                <strong>上传正式 Raw Data</strong>
-                                <span>保存到公共数据库</span>
-                            </div>
-                        </div>
+                        <button id="refreshBtn" class="icon-btn" title="刷新列表">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                </path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
-                <div class="search-actions-row">
+                <div class="search-row">
                     <div class="search-box">
                         <svg class="search-icon" width="14" height="14" fill="none" stroke="currentColor"
                             viewBox="0 0 24 24">

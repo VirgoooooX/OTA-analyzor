@@ -126,66 +126,43 @@ body {
     text-transform: uppercase;
     color: var(--text-tertiary);
     letter-spacing: 0.05em;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-/* Collapsible Upload Bar */
-.upload-bar {
-    margin-bottom: 0.5rem;
-}
-
-.upload-toggle-btn {
+/* Title Actions & Upload Dropdown */
+.title-actions {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    padding: 0.45rem 0.65rem;
-    background: var(--bg-hover);
+    gap: 4px;
+}
+
+.upload-dropdown-container {
+    position: relative;
+}
+
+.upload-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    color: var(--text-secondary);
-    font-size: 0.78rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.upload-toggle-btn:hover {
-    background: var(--border);
-    color: var(--text-primary);
-}
-
-.upload-toggle-icon {
-    flex-shrink: 0;
-    color: var(--accent);
-}
-
-.upload-chevron {
-    margin-left: auto;
-    flex-shrink: 0;
-    transition: transform 0.25s ease;
-}
-
-.upload-bar.expanded .upload-chevron {
-    transform: rotate(180deg);
-}
-
-.upload-panel {
+    box-shadow: var(--shadow-lg);
+    width: 280px;
+    z-index: 50;
+    padding: 0.5rem;
     display: grid;
     gap: 0.5rem;
-    margin-top: 0.5rem;
-    max-height: 200px;
-    overflow: hidden;
-    transition: max-height 0.3s ease, margin-top 0.3s ease, opacity 0.25s ease;
-    opacity: 1;
+    transform-origin: top right;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
 }
 
-.upload-panel.collapsed {
-    max-height: 0;
-    margin-top: 0;
+.upload-dropdown-menu.collapsed {
+    transform: scale(0.95);
     opacity: 0;
     pointer-events: none;
 }
@@ -254,7 +231,7 @@ body.dark-mode .upload-zone.raw {
 }
 
 /* Search + Actions Row */
-.search-actions-row {
+.search-row {
     display: flex;
     align-items: center;
     gap: 0.35rem;
@@ -278,7 +255,7 @@ body.dark-mode .upload-zone.raw {
 #searchInput {
     width: 100%;
     padding: 0.625rem 0.75rem 0.625rem 2.25rem;
-    background-color: var(--bg-app);
+    background-color: var(--bg-hover);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     color: var(--text-primary);
@@ -304,12 +281,13 @@ body.dark-mode .upload-zone.raw {
 }
 
 .tag-chip {
-    padding: 0.2rem 0.5rem;
-    background: var(--bg-hover);
-    color: var(--text-secondary);
-    border: 1px solid var(--border);
+    padding: 0.2rem 0.55rem;
+    background: var(--accent-light);
+    color: var(--accent-text);
+    border: 1px solid transparent;
     border-radius: 12px;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
     -webkit-user-select: none;
@@ -317,7 +295,7 @@ body.dark-mode .upload-zone.raw {
 }
 
 .tag-chip:hover {
-    background: var(--border);
+    opacity: 0.85;
 }
 
 .tag-chip.active {
@@ -348,7 +326,7 @@ body.dark-mode .upload-zone.raw {
 .file-item {
     display: flex;
     align-items: flex-start;
-    padding: 0.5rem;
+    padding: 0.4rem 0.5rem;
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: background-color 0.15s;
@@ -360,10 +338,10 @@ body.dark-mode .upload-zone.raw {
 }
 
 .file-item input[type="checkbox"] {
-    margin-top: 0.2rem;
-    margin-right: 0.75rem;
+    margin-top: 0.15rem;
+    margin-right: 0.6rem;
     accent-color: var(--accent);
-    width: 1rem; height: 1rem;
+    width: 0.9rem; height: 0.9rem;
     cursor: pointer;
     flex-shrink: 0;
 }
@@ -372,30 +350,38 @@ body.dark-mode .upload-zone.raw {
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-width: 0; /* allows text truncation if needed */
+    min-width: 0;
+    gap: 0.15rem;
+}
+
+.file-display-name {
+    font-size: 0.78rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    line-height: 1.35;
+    font-weight: 500;
 }
 
 .file-item label {
-    font-size: 0.8125rem;
-    color: var(--text-secondary);
+    font-size: 0.78rem;
+    color: var(--text-primary);
     cursor: pointer;
-    line-height: 1.4;
-    word-break: break-all;
+    line-height: 1.35;
 }
 
 .file-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem;
-    margin-top: 0.25rem;
+    gap: 0.2rem;
+    margin-top: 0;
 }
 
 .mini-tag {
-    font-size: 0.65rem;
-    padding: 0.1rem 0.3rem;
+    font-size: 0.6rem;
+    padding: 0.05rem 0.25rem;
     background: var(--border);
-    color: var(--text-secondary);
-    border-radius: 4px;
+    color: var(--text-tertiary);
+    border-radius: 3px;
 }
 
 .source-badge {

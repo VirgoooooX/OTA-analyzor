@@ -431,6 +431,29 @@ body.dark-mode .upload-zone.raw {
     cursor: not-allowed;
 }
 
+.delete-tags-btn {
+    flex-shrink: 0;
+    padding: 0.35rem;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--danger);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.file-item:hover .delete-tags-btn {
+    opacity: 1;
+}
+
+.delete-tags-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
 /* Modal Styling */
 .modal {
     position: fixed;

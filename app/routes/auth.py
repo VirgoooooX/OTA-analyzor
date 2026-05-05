@@ -14,6 +14,7 @@ async def login(response: Response, password: str = Form(...)) -> dict:
             httponly=True,
             samesite="lax",
             max_age=86400 * 30,  # 30 days
+            path="/",
         )
         return {"ok": True}
     response.status_code = 401

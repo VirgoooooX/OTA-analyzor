@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const formData = new FormData();
             formData.append('password', loginPassword.value);
-            const res = await fetch('/api/login', { method: 'POST', body: formData });
+            const res = await fetch('/api/login', { method: 'POST', body: formData, credentials: 'include' });
             const data = await res.json();
             if (data.ok) {
                 hideLogin();
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function authFetch(url, options = {}) {
-        const res = await fetch(url, options);
+        const res = await fetch(url, { ...options, credentials: 'include' });
         if (res.status === 401) {
             showLogin();
             throw new Error('请先登录');
@@ -224,6 +224,25 @@ document.addEventListener('DOMContentLoaded', () => {
             item.appendChild(checkbox);
             item.appendChild(infoDiv);
             item.appendChild(editBtn);
+
+            if (source !== 'upload') {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-tags-btn';
+                deleteBtn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
+                deleteBtn.title = '删除文件';
+                deleteBtn.onclick = async (e) => {
+                    e.stopPropagation();
+                    if (!confirm(`确认删除文件 ${name}?`)) return;
+                    try {
+                        await authFetch(`/api/files/${encodeURIComponent(name)}`, { method: 'DELETE' });
+                        loadFiles();
+                    } catch (error) {
+                        alert('删除失败: ' + error.message);
+                    }
+                };
+                item.appendChild(deleteBtn);
+            }
+
             fileListEl.appendChild(item);
         });
         updateGenerateBtn();

@@ -8,7 +8,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from analysis import resolve_data_file
 from app.config import DATA_DIR, UPLOAD_DIR
-from app.database import get_tags
+from app.database import delete_file_cache, delete_file_metadata, delete_tags, get_tags
 from app.services.file_service import list_files as list_all_files
 from app.utils import ensure_runtime_dirs, safe_filename, raw_data_filename, file_entry
 
@@ -44,8 +44,6 @@ async def api_upload_files(files: List[UploadFile] = File(...)):
 
 @router.post("/rawdata/upload")
 async def api_upload_raw_data_files(files: List[UploadFile] = File(...)):
-    from app.database import set_tags as db_set_tags
-
     ensure_runtime_dirs(str(DATA_DIR), str(UPLOAD_DIR))
     uploaded = []
 
@@ -65,10 +63,30 @@ async def api_upload_raw_data_files(files: List[UploadFile] = File(...)):
             shutil.copyfileobj(upload.file, handle)
 
         existing_tags = get_tags(original_name)
-        if "RawData" not in existing_tags:
-            existing_tags.append("RawData")
-        db_set_tags(original_name, existing_tags)
         ref = resolve_data_file(f"raw:{original_name}", str(DATA_DIR), str(UPLOAD_DIR))
         uploaded.append(file_entry(ref, existing_tags))
 
     return {"uploaded": uploaded}
+
+
+@router.delete("/files/{filename}")
+async def api_delete_file(filename: str):
+    # 路径遍历防护
+    target_path = (Path(DATA_DIR) / filename).resolve()
+    data_dir_resolved = Path(DATA_DIR).resolve()
+    if not str(target_path).startswith(str(data_dir_resolved)):
+        raise HTTPException(status_code=400, detail="非法文件路径")
+
+    # 只允许删除 raw data 文件（以 Organized_ 开头）
+    if not filename.startswith("Organized_"):
+        raise HTTPException(status_code=400, detail="仅支持删除 raw data 文件")
+
+    if not target_path.exists():
+        raise HTTPException(status_code=404, detail=f"文件 {filename} 不存在")
+    os.unlink(target_path)
+
+    delete_tags(filename)
+    delete_file_cache(str(target_path))
+    delete_file_metadata(filename)
+
+    return {"ok": True, "deleted": filename}

@@ -234,3 +234,21 @@ def set_file_metadata(filename: str, parsed: dict):
         ),
     )
     db.commit()
+
+
+def delete_tags(filename: str):
+    db = get_db()
+    db.execute("DELETE FROM tags WHERE filename = ?", (filename,))
+    db.commit()
+
+
+def delete_file_cache(file_path: str):
+    db = get_db()
+    db.execute("DELETE FROM file_cache WHERE file_path = ?", (file_path,))
+    db.commit()
+
+
+def delete_file_metadata(filename: str):
+    db = get_db()
+    db.execute("DELETE FROM file_metadata WHERE filename = ?", (filename,))
+    db.commit()

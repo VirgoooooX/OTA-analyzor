@@ -5,7 +5,7 @@ import pandas as pd
 
 from analysis import resolve_data_file, discover_power_delta_columns, discover_raw_power_columns
 from app.config import DATA_DIR, UPLOAD_DIR
-from app.utils import find_header_row, source_label, ordered_checkpoints
+from app.utils import find_header_row, source_label, ordered_checkpoints, merge_checkpoint_sequences
 
 
 def normalize_columns(df: pd.DataFrame):
@@ -76,7 +76,7 @@ def process_file(filename: str, include_fail_data: bool, selected_channels: set 
 
     if not ref.path.exists():
         report["message"] = "文件不存在"
-        return None, report
+        return None, report, []
 
     try:
         header_idx = find_header_row(str(ref.path))
@@ -91,7 +91,7 @@ def process_file(filename: str, include_fail_data: bool, selected_channels: set 
         if not matches:
             label = "Raw Power" if data_type == "raw" else "Tx Power Delta"
             report["message"] = f"未识别到 {label} 频点列"
-            return None, report
+            return None, report, []
 
         df = pd.read_csv(str(ref.path), skiprows=header_idx)
         df = normalize_columns(df)
@@ -135,7 +135,7 @@ def process_file(filename: str, include_fail_data: bool, selected_channels: set 
 
 def get_cleaned_data(files: list, include_fail_data: bool = False, channels: list | None = None, data_type: str = "delta"):
     all_dfs = []
-    cp_sequence = []
+    cp_sequences = []
     reports = []
     selected_channels = set(channels) if channels else None
 
@@ -146,7 +146,8 @@ def get_cleaned_data(files: list, include_fail_data: bool = False, channels: lis
         reports.append(report)
         if df_melted is not None and not df_melted.empty:
             all_dfs.append(df_melted)
-        cp_sequence.extend(file_cp_sequence)
+        if file_cp_sequence:
+            cp_sequences.append(file_cp_sequence)
 
     if not all_dfs:
         return None, None, reports, {
@@ -160,7 +161,7 @@ def get_cleaned_data(files: list, include_fail_data: bool = False, channels: lis
     full_df = pd.concat(all_dfs).dropna(subset=["Delta", "CheckPoint"])
     full_df["CheckPoint"] = full_df["CheckPoint"].astype(str)
     valid_cps = set(ordered_checkpoints(full_df["CheckPoint"].tolist()))
-    unique_cps = [cp for cp in ordered_checkpoints(cp_sequence) if cp in valid_cps]
+    unique_cps = [cp for cp in merge_checkpoint_sequences(cp_sequences) if cp in valid_cps]
     full_df["CheckPoint"] = pd.Categorical(full_df["CheckPoint"], categories=unique_cps, ordered=True)
 
     valid_reports = [r for r in reports if r["status"] == "ok"]

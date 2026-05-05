@@ -53,6 +53,68 @@ def ordered_checkpoints(values) -> list[str]:
     return ordered
 
 
+def _insert_before(sequence: list[str], anchor: str, items: list[str]) -> list[str]:
+    if not items:
+        return sequence
+    index = sequence.index(anchor)
+    return sequence[:index] + items + sequence[index:]
+
+
+def _insert_after(sequence: list[str], anchor: str, items: list[str]) -> list[str]:
+    if not items:
+        return sequence
+    index = sequence.index(anchor) + 1
+    return sequence[:index] + items + sequence[index:]
+
+
+def merge_checkpoint_sequences(sequences) -> list[str]:
+    normalized = []
+    for index, sequence in enumerate(sequences):
+        ordered = ordered_checkpoints(sequence)
+        if ordered:
+            normalized.append((index, ordered))
+
+    if not normalized:
+        return []
+
+    # Prefer the richest sequence as the merge backbone.
+    normalized.sort(key=lambda item: (-len(item[1]), item[0]))
+    merged = list(normalized[0][1])
+
+    for _index, sequence in normalized[1:]:
+        anchors = [cp for cp in sequence if cp in merged]
+        missing = [cp for cp in sequence if cp not in merged]
+        if not missing:
+            continue
+        if not anchors:
+            merged.extend(missing)
+            continue
+
+        anchor_positions = [i for i, cp in enumerate(sequence) if cp in merged]
+        first_anchor_pos = anchor_positions[0]
+        first_anchor = sequence[first_anchor_pos]
+        merged = _insert_before(
+            merged,
+            first_anchor,
+            [cp for cp in sequence[:first_anchor_pos] if cp not in merged],
+        )
+
+        for left_pos, right_pos in zip(anchor_positions, anchor_positions[1:]):
+            left_anchor = sequence[left_pos]
+            between = [cp for cp in sequence[left_pos + 1:right_pos] if cp not in merged]
+            merged = _insert_after(merged, left_anchor, between)
+
+        last_anchor_pos = anchor_positions[-1]
+        last_anchor = sequence[last_anchor_pos]
+        merged = _insert_after(
+            merged,
+            last_anchor,
+            [cp for cp in sequence[last_anchor_pos + 1:] if cp not in merged],
+        )
+
+    return merged
+
+
 def find_header_row(file_path):
     try:
         return smart_find_header_row(file_path)

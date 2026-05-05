@@ -69,6 +69,32 @@ def test_merge_checkpoint_sequences_inserts_into_anchor_interval():
     assert reversed_merged == ["T0", "THC", "HS", "50", "100"]
 
 
+def test_merge_checkpoint_sequences_uses_structured_correction_for_single_outlier():
+    merged = merge_checkpoint_sequences(
+        [
+            ["Left 300", "Left 350", "Left 450", "Top 100"],
+            ["Left 300", "Left 350", "Left 450", "Top 100"],
+            ["Left 300", "Left 350", "Left 450", "Top 100"],
+            ["Left 300", "Left 350", "Left 450", "Top 100", "Left 400"],
+        ]
+    )
+
+    assert merged == ["Left 300", "Left 350", "Left 400", "Left 450", "Top 100"]
+
+
+def test_merge_checkpoint_sequences_prefers_strong_majority_over_structured_correction():
+    merged = merge_checkpoint_sequences(
+        [
+            ["Left 300", "Left 350", "Left 450", "Left 400", "Top 100"],
+            ["Left 300", "Left 350", "Left 450", "Left 400", "Top 100"],
+            ["Left 300", "Left 350", "Left 450", "Left 400", "Top 100"],
+            ["Left 300", "Left 350", "Left 400", "Left 450", "Top 100"],
+        ]
+    )
+
+    assert merged == ["Left 300", "Left 350", "Left 450", "Left 400", "Top 100"]
+
+
 def test_get_cleaned_data_merges_cross_file_checkpoint_intervals(temp_dirs):
     file_a = temp_dirs["data"] / "Organized_a.csv"
     file_b = temp_dirs["data"] / "Organized_b.csv"
@@ -107,3 +133,49 @@ def test_get_cleaned_data_merges_cross_file_checkpoint_intervals(temp_dirs):
     assert unique_cps == ["T0", "THC", "HS", "50", "100"]
     assert all(report["status"] == "ok" for report in reports)
     assert summary["valid_files"] == 2
+
+
+def test_get_cleaned_data_prefers_majority_but_corrects_single_structured_outlier(temp_dirs):
+    ordered_rows = (
+        "SerialNumber,Checkpoint,Test Pass/Fail Status,tech=BT;rate=1LE;freq=2402;tc=Power subtc=Avg\n"
+        "SN001,Left 300,PASS,-1.0\n"
+        "SN001,Left 350,PASS,-2.0\n"
+        "SN001,Left 450,PASS,-3.0\n"
+        "SN001,Top 100,PASS,-4.0\n"
+    )
+    outlier_rows = (
+        "SerialNumber,Checkpoint,Test Pass/Fail Status,tech=BT;rate=1LE;freq=2402;tc=Power subtc=Avg\n"
+        "SN999,Left 300,PASS,-1.0\n"
+        "SN999,Left 350,PASS,-2.0\n"
+        "SN999,Left 450,PASS,-3.0\n"
+        "SN999,Top 100,PASS,-4.0\n"
+        "SN999,Left 400,PASS,-5.0\n"
+    )
+
+    for name in ("a", "b", "c"):
+        (temp_dirs["data"] / f"Organized_{name}.csv").write_text(ordered_rows, encoding="utf-8")
+    (temp_dirs["data"] / "Organized_d.csv").write_text(outlier_rows, encoding="utf-8")
+
+    original_data_dir = data_service.DATA_DIR
+    original_upload_dir = data_service.UPLOAD_DIR
+    data_service.DATA_DIR = temp_dirs["data"]
+    data_service.UPLOAD_DIR = temp_dirs["uploads"]
+    try:
+        _full_df, unique_cps, reports, summary = data_service.get_cleaned_data(
+            [
+                "raw:Organized_a.csv",
+                "raw:Organized_b.csv",
+                "raw:Organized_c.csv",
+                "raw:Organized_d.csv",
+            ],
+            include_fail_data=False,
+            channels=None,
+            data_type="delta",
+        )
+    finally:
+        data_service.DATA_DIR = original_data_dir
+        data_service.UPLOAD_DIR = original_upload_dir
+
+    assert unique_cps == ["Left 300", "Left 350", "Left 400", "Left 450", "Top 100"]
+    assert all(report["status"] == "ok" for report in reports)
+    assert summary["valid_files"] == 4

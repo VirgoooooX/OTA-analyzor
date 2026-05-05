@@ -20,7 +20,7 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def auth_middleware(request: Request, call_next):
         if PASSWORD and request.url.path.startswith("/api/") and request.url.path not in AUTH_PATHS:
-            token = request.cookies.get("auth_token", "")
+            token = request.cookies.get("auth_token", "") or request.headers.get("X-Auth-Token", "")
             if token != PASSWORD:
                 return JSONResponse(
                     status_code=401,

@@ -49,6 +49,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginError = document.getElementById('loginError');
     const loginSubmitBtn = document.getElementById('loginSubmitBtn');
 
+    const AUTH_STORAGE_KEY = 'ota_auth_token';
+
+    function getStoredToken() {
+        try { return localStorage.getItem(AUTH_STORAGE_KEY) || ''; } catch { return ''; }
+    }
+
+    function setStoredToken(token) {
+        try { localStorage.setItem(AUTH_STORAGE_KEY, token); } catch {}
+    }
+
+    function clearStoredToken() {
+        try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch {}
+    }
+
     function showLogin() {
         loginOverlay.classList.remove('hidden');
         loginPassword.focus();
@@ -69,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/api/login', { method: 'POST', body: formData, credentials: 'include' });
             const data = await res.json();
             if (data.ok) {
+                setStoredToken(data.token || loginPassword.value);
                 hideLogin();
                 loginPassword.value = '';
                 loadFiles();
@@ -86,8 +101,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function authFetch(url, options = {}) {
-        const res = await fetch(url, { ...options, credentials: 'include' });
+        const token = getStoredToken();
+        const headers = { ...(options.headers || {}) };
+        if (token) headers['X-Auth-Token'] = token;
+        const res = await fetch(url, { ...options, headers, credentials: 'include' });
         if (res.status === 401) {
+            clearStoredToken();
             showLogin();
             throw new Error('请先登录');
         }
@@ -232,9 +251,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 deleteBtn.title = '删除文件';
                 deleteBtn.onclick = async (e) => {
                     e.stopPropagation();
-                    if (!confirm(`确认删除文件 ${name}?`)) return;
+                    if (!confirm(`确认删除文件 ${fileName}?`)) return;
                     try {
-                        await authFetch(`/api/files/${encodeURIComponent(name)}`, { method: 'DELETE' });
+                        const res = await authFetch(`/api/files/${encodeURIComponent(fileName)}`, { method: 'DELETE' });
+                        if (!res.ok) {
+                            const errData = await res.json().catch(() => ({}));
+                            throw new Error(errData.detail || '删除失败');
+                        }
                         loadFiles();
                     } catch (error) {
                         alert('删除失败: ' + error.message);

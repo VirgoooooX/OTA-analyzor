@@ -16,6 +16,6 @@ async def login(response: Response, password: str = Form(...)) -> dict:
             max_age=86400 * 30,  # 30 days
             path="/",
         )
-        return {"ok": True}
+        return {"ok": True, "token": PASSWORD}
     response.status_code = 401
     return {"ok": False, "error": "密码错误"}

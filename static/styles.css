@@ -433,14 +433,15 @@ body.dark-mode .upload-zone.raw {
 
 .delete-tags-btn {
     flex-shrink: 0;
-    padding: 0.35rem;
+    padding: 0.2rem;
+    margin-left: 0.5rem;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: 4px;
     background: transparent;
     color: var(--danger);
     cursor: pointer;
     opacity: 0;
-    transition: opacity 0.15s, background 0.15s;
+    transition: all 0.2s;
     display: inline-flex;
     align-items: center;
     justify-content: center;

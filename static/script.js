@@ -59,16 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
         try { localStorage.setItem(AUTH_STORAGE_KEY, token); } catch {}
     }
 
-    function clearStoredToken() {
-        try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch {}
-    }
-
     function showLogin() {
         loginOverlay.classList.remove('hidden');
         loginPassword.focus();
     }
 
     function hideLogin() {
+        loginError.classList.add('hidden');
         loginOverlay.classList.add('hidden');
     }
 
@@ -106,7 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (token) headers['X-Auth-Token'] = token;
         const res = await fetch(url, { ...options, headers, credentials: 'include' });
         if (res.status === 401) {
-            clearStoredToken();
             showLogin();
             throw new Error('请先登录');
         }
@@ -114,27 +110,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Load files list
-    function loadFiles() {
+    async function loadFiles() {
         const originalHTML = refreshBtn.innerHTML;
         refreshBtn.disabled = true;
-        
-        authFetch('/api/files?t=' + new Date().getTime(), { cache: 'no-store' })
-            .then(res => res.json())
-            .then(data => {
-                store.allFiles = data.files || [];
-                store.allTags = data.all_tags || [];
-                renderTagFilters(store.allTags);
-                renderFiles(store.allFiles);
-                applyFilters();
-            })
-            .catch(err => {
-                console.error('Failed to load files:', err);
+
+        try {
+            const res = await authFetch('/api/files?t=' + new Date().getTime(), { cache: 'no-store' });
+            const data = await res.json();
+            store.allFiles = data.files || [];
+            store.allTags = data.all_tags || [];
+            renderTagFilters(store.allTags);
+            renderFiles(store.allFiles);
+            applyFilters();
+            hideLogin();
+        } catch (err) {
+            console.error('Failed to load files:', err);
+            if (err?.message !== '请先登录') {
                 fileListEl.innerHTML = '<p style="color:red; text-align:center; padding: 1rem;">加载文件失败</p>';
-            })
-            .finally(() => {
-                refreshBtn.disabled = false;
-                refreshBtn.innerHTML = originalHTML;
-            });
+            }
+        } finally {
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = originalHTML;
+        }
     }
 
     function renderTagFilters(tags) {

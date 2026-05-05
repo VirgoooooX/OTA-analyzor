@@ -9,6 +9,7 @@ services:
       UPLOAD_DIR: /app/uploads
       TAGS_FILE: /app/config/tags.json
       DB_PATH: /app/config/ota.db
+      PASSWORD: ota2024
     volumes:
       - ./Raw Data:/app/data
       - ./uploads:/app/uploads

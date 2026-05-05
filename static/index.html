@@ -5,11 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OTA Analyzor Dashboard</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2.0.4">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2.0.5">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=2.0.4">
+    <link rel="stylesheet" href="styles.css?v=2.0.5">
     <!-- Plotly.js -->
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
 </head>
@@ -224,7 +224,32 @@
         </div>
     </div>
 
-    <script src="script.js?v=2.0.4"></script>
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-card">
+            <div class="login-logo">
+                <svg viewBox="1 4 22 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="32" height="24">
+                    <path d="M8 9c-1.5 1.5-1.5 4.5 0 6" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round" />
+                    <path d="M5 6c-3 3-3 9 0 12" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round" opacity="0.5" />
+                    <path d="M16 9c1.5 1.5 1.5 4.5 0 6" stroke="#4096ff" stroke-width="2" stroke-linecap="round" />
+                    <path d="M19 6c3 3 3 9 0 12" stroke="#4096ff" stroke-width="2" stroke-linecap="round" opacity="0.5" />
+                    <path d="M9.5 14.5l5-5-2.5-2.5v10l2.5-2.5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                OTA Analyzor
+            </div>
+            <h2>请登录</h2>
+            <form id="loginForm" class="login-form">
+                <div class="input-group">
+                    <label for="loginPassword">密码</label>
+                    <input type="password" id="loginPassword" placeholder="输入访问密码" autofocus>
+                </div>
+                <p id="loginError" class="login-error hidden"></p>
+                <button type="submit" class="btn btn-primary login-submit" id="loginSubmitBtn">登 录</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js?v=2.0.5"></script>
 </body>
 
 </html>

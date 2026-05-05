@@ -42,12 +42,64 @@ document.addEventListener('DOMContentLoaded', () => {
         dataType: 'delta',
     };
 
+    // ── Auth ──
+    const loginOverlay = document.getElementById('loginOverlay');
+    const loginForm = document.getElementById('loginForm');
+    const loginPassword = document.getElementById('loginPassword');
+    const loginError = document.getElementById('loginError');
+    const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+
+    function showLogin() {
+        loginOverlay.classList.remove('hidden');
+        loginPassword.focus();
+    }
+
+    function hideLogin() {
+        loginOverlay.classList.add('hidden');
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        loginError.classList.add('hidden');
+        loginSubmitBtn.disabled = true;
+        loginSubmitBtn.textContent = '验证中...';
+        try {
+            const formData = new FormData();
+            formData.append('password', loginPassword.value);
+            const res = await fetch('/api/login', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.ok) {
+                hideLogin();
+                loginPassword.value = '';
+                loadFiles();
+            } else {
+                loginError.textContent = data.error || '密码错误';
+                loginError.classList.remove('hidden');
+            }
+        } catch {
+            loginError.textContent = '网络错误，请重试';
+            loginError.classList.remove('hidden');
+        } finally {
+            loginSubmitBtn.disabled = false;
+            loginSubmitBtn.textContent = '登 录';
+        }
+    });
+
+    async function authFetch(url, options = {}) {
+        const res = await fetch(url, options);
+        if (res.status === 401) {
+            showLogin();
+            throw new Error('请先登录');
+        }
+        return res;
+    }
+
     // Load files list
     function loadFiles() {
         const originalHTML = refreshBtn.innerHTML;
         refreshBtn.disabled = true;
         
-        fetch('/api/files?t=' + new Date().getTime(), { cache: 'no-store' })
+        authFetch('/api/files?t=' + new Date().getTime(), { cache: 'no-store' })
             .then(res => res.json())
             .then(data => {
                 store.allFiles = data.files || [];
@@ -215,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setUploadBusy(zone, true);
 
         try {
-            const response = await fetch(endpoint, {
+            const response = await authFetch(endpoint, {
                 method: 'POST',
                 body: formData
             });
@@ -326,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveTagBtn.textContent = '保存中...';
 
         try {
-            const res = await fetch('/api/tags', {
+            const res = await authFetch('/api/tags', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ filename: store.editingFileName, tags: store.editingTags })
@@ -380,7 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
         generateBtn.disabled = true;
 
         try {
-            const response = await fetch('/api/fetch_chart_data', {
+            const response = await authFetch('/api/fetch_chart_data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ files: selectedFiles, includeFailData: includeFailData, data_type: dataType })

@@ -35,6 +35,24 @@ def get_cp_order(cp):
     return 999
 
 
+def ordered_checkpoints(values) -> list[str]:
+    ordered = []
+    seen = set()
+
+    for value in values:
+        if value is None:
+            continue
+        cp = str(value).strip()
+        if not cp or cp.lower() == "nan":
+            continue
+        if cp in seen:
+            continue
+        seen.add(cp)
+        ordered.append(cp)
+
+    return ordered
+
+
 def find_header_row(file_path):
     try:
         return smart_find_header_row(file_path)

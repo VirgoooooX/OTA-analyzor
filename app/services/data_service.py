@@ -5,7 +5,7 @@ import pandas as pd
 
 from analysis import resolve_data_file, discover_power_delta_columns, discover_raw_power_columns
 from app.config import DATA_DIR, UPLOAD_DIR
-from app.utils import find_header_row, source_label, get_cp_order
+from app.utils import find_header_row, source_label, ordered_checkpoints
 
 
 def normalize_columns(df: pd.DataFrame):
@@ -94,13 +94,15 @@ def process_file(filename: str, include_fail_data: bool, selected_channels: set 
             return None, report
 
         df = pd.read_csv(str(ref.path), skiprows=header_idx)
-        if not include_fail_data:
-            df = filter_pass_records(df)
-
         df = normalize_columns(df)
         if "CheckPoint" not in df.columns or "SerialNumber" not in df.columns:
             report["message"] = "缺少 CheckPoint/CP 或 SerialNumber 列"
-            return None, report
+            return None, report, []
+
+        cp_sequence = ordered_checkpoints(df["CheckPoint"].tolist())
+
+        if not include_fail_data:
+            df = filter_pass_records(df)
 
         value_columns = [match.column for match in matches.values()]
         needed_cols = ["CheckPoint", "SerialNumber"] + value_columns
@@ -125,22 +127,26 @@ def process_file(filename: str, include_fail_data: bool, selected_channels: set 
         report["matched_channels"] = sorted({match.channel for match in matches.values()})
         report["frequencies"] = sorted({match.frequency for match in matches.values()})
         report["message"] = "OK"
-        return df_melted, report
+        return df_melted, report, cp_sequence
     except Exception as e:
         report["message"] = f"读取失败: {e}"
-        return None, report
+        return None, report, []
 
 
 def get_cleaned_data(files: list, include_fail_data: bool = False, channels: list | None = None, data_type: str = "delta"):
     all_dfs = []
+    cp_sequence = []
     reports = []
     selected_channels = set(channels) if channels else None
 
     for filename in files:
-        df_melted, report = process_file(filename, include_fail_data, selected_channels, data_type)
+        df_melted, report, file_cp_sequence = process_file(
+            filename, include_fail_data, selected_channels, data_type
+        )
         reports.append(report)
         if df_melted is not None and not df_melted.empty:
             all_dfs.append(df_melted)
+        cp_sequence.extend(file_cp_sequence)
 
     if not all_dfs:
         return None, None, reports, {
@@ -153,15 +159,8 @@ def get_cleaned_data(files: list, include_fail_data: bool = False, channels: lis
 
     full_df = pd.concat(all_dfs).dropna(subset=["Delta", "CheckPoint"])
     full_df["CheckPoint"] = full_df["CheckPoint"].astype(str)
-    raw_unique_cps = full_df["CheckPoint"].unique()
-    unique_cps = sorted(
-        [
-            cp
-            for cp in raw_unique_cps
-            if pd.notna(cp) and str(cp).lower() != "nan" and str(cp).strip() != ""
-        ],
-        key=get_cp_order,
-    )
+    valid_cps = set(ordered_checkpoints(full_df["CheckPoint"].tolist()))
+    unique_cps = [cp for cp in ordered_checkpoints(cp_sequence) if cp in valid_cps]
     full_df["CheckPoint"] = pd.Categorical(full_df["CheckPoint"], categories=unique_cps, ordered=True)
 
     valid_reports = [r for r in reports if r["status"] == "ok"]

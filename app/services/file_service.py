@@ -8,7 +8,7 @@ from app.config import DATA_DIR, UPLOAD_DIR
 from app.database import get_file_cache, set_file_cache, get_file_metadata, set_file_metadata
 from app.services.filename_parser import parse_filename
 from app.services.tag_service import list_all_tags
-from app.utils import find_header_row, file_entry
+from app.utils import find_header_row, file_entry, ordered_checkpoints
 
 
 def extract_metadata(file_path: str) -> dict:
@@ -30,7 +30,7 @@ def extract_metadata(file_path: str) -> dict:
             None,
         )
         sn_count = int(df[sn_col].nunique()) if sn_col else 0
-        unique_cps = sorted(df[cp_col].dropna().unique().tolist()) if cp_col else []
+        unique_cps = ordered_checkpoints(df[cp_col].tolist()) if cp_col else []
 
         return {
             "row_count": row_count,

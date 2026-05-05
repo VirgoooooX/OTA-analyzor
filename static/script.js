@@ -673,9 +673,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Filter categories to only those in the filtered data
-        const activeCPs = store.selectedCPs.length > 0
-            ? store.selectedCPs.filter(cp => filteredData.some(d => d.CheckPoint === cp))
-            : store.currentData.unique_cps;
+        const activeCPs = store.currentData.unique_cps.filter(cp => (
+            (store.selectedCPs.length === 0 || store.selectedCPs.includes(cp))
+            && filteredData.some(d => d.CheckPoint === cp)
+        ));
 
         if (chartType === 'boxplot') {
             renderBoxplot(filteredData, activeCPs, selectedChannels);
